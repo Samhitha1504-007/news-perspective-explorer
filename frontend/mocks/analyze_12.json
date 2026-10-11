@@ -1,0 +1,6 @@
+{
+  "article_id": 12,
+  "label": "Positive",
+  "scores": { "positive": 18, "neutral": 9, "critical": 4 },
+  "matched_terms": ["innovative", "benefit"]
+}
