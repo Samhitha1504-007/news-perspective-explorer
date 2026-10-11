@@ -1,0 +1,8 @@
+{
+  "topic_id": 1,
+  "topic": "AI Regulation",
+  "sources": [
+    { "source_id": 1, "source_name": "Source A", "article_count": 3, "positive": 2, "neutral": 1, "critical": 0 },
+    { "source_id": 2, "source_name": "Source B", "article_count": 2, "positive": 0, "neutral": 1, "critical": 1 }
+  ]
+}
