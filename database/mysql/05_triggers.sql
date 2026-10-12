@@ -1,7 +1,27 @@
+
 -- Owner: P2
--- On UPDATE of perspective_terms, set article_perspectives.needs_rescore
--- = TRUE for affected rows. The Python service does the re-scoring;
--- the trigger only flags.
+-- Flag stored article analyses when a perspective term changes.
+-- Python is responsible for recalculating the scores.
+
 USE news_perspective_db;
 
--- TODO(P2): CREATE TRIGGER trg_perspective_terms_after_update ...
+DROP TRIGGER IF EXISTS trg_perspective_terms_after_update;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_perspective_terms_after_update
+AFTER UPDATE ON perspective_terms
+FOR EACH ROW
+BEGIN
+    UPDATE article_perspectives
+    SET needs_rescore = TRUE
+    WHERE article_id IN (
+        SELECT article_id
+        FROM (
+            SELECT article_id
+            FROM article_perspectives
+        ) AS analyzed_articles
+    );
+END$$
+
+DELIMITER ;
