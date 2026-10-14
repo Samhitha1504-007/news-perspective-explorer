@@ -1,0 +1,28 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #f6f7f9; color: #1f2328; }
+main { max-width: 860px; margin: 0 auto; padding: 24px 16px; }
+a { color: #0b5cad; }
+h1 { margin-top: 0; }
+
+nav { display: flex; gap: 16px; align-items: center; padding: 12px 24px; background: #1f2328; }
+nav a, nav span { color: #fff; text-decoration: none; }
+nav .spacer { flex: 1; }
+
+.card { background: #fff; border: 1px solid #d8dde3; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+.muted { color: #656d76; font-size: 14px; }
+.error { color: #b42318; }
+.success { color: #1a7f37; }
+
+form { display: flex; flex-direction: column; gap: 12px; max-width: 480px; }
+input, textarea, select, button { font: inherit; padding: 8px 10px; border: 1px solid #c4cad1; border-radius: 6px; }
+button { background: #0b5cad; color: #fff; border: none; cursor: pointer; }
+.search-bar { flex-direction: row; max-width: none; }
+.search-bar input { flex: 1; }
+
+.label { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 13px; color: #fff; }
+.label-Positive { background: #1a7f37; }
+.label-Neutral { background: #656d76; }
+.label-Critical { background: #b42318; }
+
+.topics { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.content { white-space: pre-wrap; line-height: 1.6; }
