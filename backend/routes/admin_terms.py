@@ -1,8 +1,9 @@
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from db.mysql import get_connection
+from services.auth_service import require_admin
 from services.scoring_service import analyze_article
 
 router = APIRouter()
@@ -35,7 +36,7 @@ class TermUpdateRequest(BaseModel):
 
 
 @router.put("/admin/terms/{term_id}")
-def update_term(term_id: int, body: TermUpdateRequest):
+def update_term(term_id: int, body: TermUpdateRequest, admin: dict = Depends(require_admin)):
     connection = None
     updates = body.model_dump(exclude_unset=True)
 
