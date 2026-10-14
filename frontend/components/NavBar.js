@@ -25,7 +25,7 @@ export default function NavBar() {
         <>
           <Link href="/history">History</Link>
           {session.role === "admin" && <Link href="/admin/articles">Admin</Link>}
-          <span>{session.name}</span>
+          <Link href="/">{session.name}</Link>
           <a href="#" onClick={handleLogout}>Logout</a>
         </>
       ) : (
