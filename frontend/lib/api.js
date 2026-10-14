@@ -1,19 +1,39 @@
 // All backend calls go through here so endpoint paths live in one place.
 // Paths and JSON keys follow the Shared API Contract exactly.
 import analyzeMock from "@/mocks/analyze_12.json";
-import articleMock from "@/mocks/article_12.json";
 import compareMock from "@/mocks/compare_1.json";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
 
+// ---------------- Login session (P1) ----------------
+// After login we keep {token, user_id, name, role} in localStorage.
+
+export function saveSession(session) {
+  localStorage.setItem("session", JSON.stringify(session));
+}
+
+export function getSession() {
+  if (typeof window === "undefined") return null; // no localStorage on the server
+  const saved = localStorage.getItem("session");
+  return saved ? JSON.parse(saved) : null;
+}
+
+export function logout() {
+  localStorage.removeItem("session");
+}
+
 async function request(path, options = {}) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json", ...options.headers },
-    ...options,
-  });
-  if (!res.ok) throw new Error(`${res.status} ${path}`);
-  return res.json();
+  const session = getSession();
+  const headers = { "Content-Type": "application/json" };
+  // Send the token so the backend knows who is calling
+  if (session) headers.Authorization = `Bearer ${session.token}`;
+
+  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  const data = await res.json();
+  // Show the backend's error message, e.g. "Wrong email or password"
+  if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Request failed");
+  return data;
 }
 
 // ---------------- P1 ----------------
@@ -21,8 +41,7 @@ export const register = (body) => request("/register", { method: "POST", body: J
 export const login = (body) => request("/login", { method: "POST", body: JSON.stringify(body) });
 export const getTopics = () => request("/topics");
 export const search = (query) => request(`/search?query=${encodeURIComponent(query)}`);
-export const getArticle = (articleId) =>
-  USE_MOCKS ? Promise.resolve(articleMock) : request(`/articles/${articleId}`);
+export const getArticle = (articleId) => request(`/articles/${articleId}`);
 export const getKeywords = (articleId) => request(`/keywords/${articleId}`);
 export const createArticle = (body) => request("/admin/articles", { method: "POST", body: JSON.stringify(body) });
 
