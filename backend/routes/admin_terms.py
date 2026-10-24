@@ -9,6 +9,20 @@ from services.scoring_service import analyze_article
 router = APIRouter()
 
 
+class TermCreateRequest(BaseModel):
+    term: str = Field(min_length=1, max_length=100)
+    category_id: int = Field(gt=0)
+    weight: float = Field(gt=0)
+
+    @field_validator("term")
+    @classmethod
+    def clean_term(cls, value):
+        value = value.strip()
+        if not value:
+            raise ValueError("Term cannot be blank")
+        return value
+
+
 class TermUpdateRequest(BaseModel):
     term: str | None = Field(default=None, min_length=1, max_length=100)
     category_id: int | None = Field(default=None, gt=0)
@@ -35,8 +49,149 @@ class TermUpdateRequest(BaseModel):
         return self
 
 
+@router.get("/admin/terms")
+def get_admin_terms(admin: dict = Depends(require_admin)):
+    """Return all perspective terms and their categories for administrators."""
+    connection = None
+
+    try:
+        connection = get_connection()
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    pt.term_id,
+                    pt.term,
+                    pt.category_id,
+                    pc.category_name,
+                    pt.weight
+                FROM perspective_terms AS pt
+                JOIN perspective_categories AS pc
+                    ON pc.category_id = pt.category_id
+                ORDER BY pc.category_name, pt.term
+                """
+            )
+            terms = cursor.fetchall()
+
+        return terms
+
+    except Exception as exc:
+        print(f"Error retrieving perspective terms: {exc}")
+        raise HTTPException(
+            status_code=500,
+            detail="Could not retrieve perspective terms",
+        )
+    finally:
+        if connection:
+            connection.close()
+
+
+@router.post("/admin/terms", status_code=201)
+def create_term(
+    body: TermCreateRequest,
+    admin: dict = Depends(require_admin),
+):
+    """Create a perspective term. Administrators only."""
+    connection = None
+    term_id = None
+
+    try:
+        connection = get_connection()
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT category_id FROM perspective_categories "
+                "WHERE category_id = %s",
+                (body.category_id,),
+            )
+            if not cursor.fetchone():
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid category_id",
+                )
+
+            cursor.execute(
+                "SELECT term_id FROM perspective_terms WHERE term = %s",
+                (body.term,),
+            )
+            if cursor.fetchone():
+                raise HTTPException(
+                    status_code=400,
+                    detail="That perspective term already exists",
+                )
+
+            cursor.execute(
+                """
+                INSERT INTO perspective_terms (term, category_id, weight)
+                VALUES (%s, %s, %s)
+                """,
+                (body.term, body.category_id, body.weight),
+            )
+            term_id = cursor.lastrowid
+
+        connection.commit()
+
+        # Find analyses flagged by the database for re-scoring.
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT article_id FROM article_perspectives "
+                "WHERE needs_rescore = TRUE ORDER BY article_id"
+            )
+            article_ids = [row["article_id"] for row in cursor.fetchall()]
+
+    except HTTPException:
+        if connection:
+            connection.rollback()
+        raise
+    except Exception as exc:
+        if connection:
+            connection.rollback()
+        print(f"Error creating perspective term: {exc}")
+        raise HTTPException(
+            status_code=500,
+            detail="Could not create perspective term",
+        )
+    finally:
+        if connection:
+            connection.close()
+
+    rescored = []
+    failures = []
+
+    for article_id in article_ids:
+        try:
+            analyze_article(article_id)
+            rescored.append(article_id)
+        except Exception as exc:
+            print(f"Could not rescore article {article_id}: {exc}")
+            failures.append({
+                "article_id": article_id,
+                "reason": str(exc),
+            })
+
+    return {
+        "message": (
+            "Term created and selected articles re-scored"
+            if not failures
+            else "Term created, but some articles could not be re-scored"
+        ),
+        "term_id": term_id,
+        "term": body.term,
+        "category_id": body.category_id,
+        "weight": body.weight,
+        "rescored_count": len(rescored),
+        "rescored_article_ids": rescored,
+        "rescore_failures": failures,
+    }
+
+
 @router.put("/admin/terms/{term_id}")
-def update_term(term_id: int, body: TermUpdateRequest, admin: dict = Depends(require_admin)):
+def update_term(
+    term_id: int,
+    body: TermUpdateRequest,
+    admin: dict = Depends(require_admin),
+):
     connection = None
     updates = body.model_dump(exclude_unset=True)
 
@@ -87,7 +242,6 @@ def update_term(term_id: int, body: TermUpdateRequest, admin: dict = Depends(req
 
         connection.commit()
 
-        # The trigger flags existing analyses when the term is updated.
         with connection.cursor() as cursor:
             cursor.execute(
                 "SELECT article_id FROM article_perspectives "
