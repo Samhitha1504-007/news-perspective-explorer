@@ -1,14 +1,16 @@
 "use client";
-// Owner: P1 (title, source, content) + P2 (perspective panel)
+// Owner: P1 (title, source, content). Perspective panel uses P2's /analyze API.
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { formatDate } from "@/components/ArticleCard";
-import { addHistory, getArticle, getKeywords, getSession } from "@/lib/api";
+import PerspectivePanel from "@/components/PerspectivePanel";
+import { addHistory, analyze, getArticle, getKeywords, getSession } from "@/lib/api";
 
 export default function ArticlePage({ params }) {
   const articleId = Number(params.article_id);
   const [article, setArticle] = useState(null);
   const [keywords, setKeywords] = useState([]);
+  const [analysis, setAnalysis] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -16,6 +18,8 @@ export default function ArticlePage({ params }) {
     getKeywords(articleId)
       .then((data) => setKeywords(data.keywords))
       .catch(() => setKeywords([]));
+    // P2's scoring engine: label, scores and the words that matched
+    analyze(articleId).then(setAnalysis).catch(() => setAnalysis(null));
 
     // Record a "view" in the reader's history (P2's API) if they are logged in
     const session = getSession();
@@ -75,6 +79,8 @@ export default function ArticlePage({ params }) {
         ))}
       </div>
 
+      {analysis && <PerspectivePanel analysis={analysis} />}
+
       {article.summary && <p className="summary">{article.summary}</p>}
       <p className="article-body">{article.content || "No article text stored yet."}</p>
 
@@ -88,8 +94,6 @@ export default function ArticlePage({ params }) {
           </div>
         </>
       )}
-
-      {/* P2: perspective panel goes here, e.g. <PerspectivePanel articleId={articleId} /> */}
     </main>
   );
 }

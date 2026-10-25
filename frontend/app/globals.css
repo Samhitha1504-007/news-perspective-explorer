@@ -162,6 +162,12 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .article-body { font-family: var(--serif); font-size: 19px; line-height: 1.7; white-space: pre-wrap; }
 .summary { font-family: var(--serif); font-style: italic; font-size: 19px; color: var(--muted); }
 
+/* Matched perspective words: a light background in the category colour */
+mark { padding: 0 3px; border-radius: 2px; color: inherit; }
+.hl-Positive { background: #dcebdf; }
+.hl-Neutral { background: #e9e6e0; }
+.hl-Critical { background: #f3d9d4; }
+
 /* ---------- Comparison: numbers and bars ---------- */
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .stat { background: var(--card); border: 1px solid var(--rule); border-top: 4px solid; padding: 14px 16px; }
