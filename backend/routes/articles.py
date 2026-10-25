@@ -51,6 +51,52 @@ def get_article(article_id: int):
     }
 
 
+@router.get("/articles/{article_id}/related")
+def get_related_articles(article_id: int):
+    """Other articles on the same topic(s), preferring other sources.
+
+    Self-join: article_topics is joined to itself. `mine` holds this
+    article's topics, `other` finds every other article with one of
+    those topics.
+    """
+    connection = get_connection()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT DISTINCT
+                    a.article_id, a.title, a.published_at,
+                    s.source_name,
+                    pc.category_name AS label,
+                    (a.source_id = this.source_id) AS same_source
+                FROM article_topics AS mine
+                JOIN article_topics AS other
+                    ON other.topic_id = mine.topic_id
+                   AND other.article_id <> mine.article_id
+                JOIN articles AS a ON a.article_id = other.article_id
+                JOIN articles AS this ON this.article_id = mine.article_id
+                JOIN sources AS s ON s.source_id = a.source_id
+                LEFT JOIN article_perspectives AS ap ON ap.article_id = a.article_id
+                LEFT JOIN perspective_categories AS pc ON pc.category_id = ap.category_id
+                WHERE mine.article_id = %s
+                ORDER BY same_source, a.published_at DESC
+                LIMIT 5
+                """,
+                (article_id,),
+            )
+            rows = cursor.fetchall()
+    finally:
+        connection.close()
+
+    return {
+        "article_id": article_id,
+        "related": [
+            {key: row[key] for key in ("article_id", "title", "published_at", "source_name", "label")}
+            for row in rows
+        ],
+    }
+
+
 @router.get("/keywords/{article_id}")
 def get_keywords(article_id: int):
     metadata = mongo_db["article_metadata"].find_one({"article_id": article_id})

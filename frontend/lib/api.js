@@ -89,6 +89,9 @@ export const getArticle = (articleId) =>
 export const getKeywords = (articleId) =>
   request(`/keywords/${articleId}`);
 
+export const getRelated = (articleId) =>
+  request(`/articles/${articleId}/related`);
+
 export const createArticle = (body) =>
   request("/admin/articles", {
     method: "POST",

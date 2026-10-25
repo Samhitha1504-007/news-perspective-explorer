@@ -2,16 +2,17 @@
 // Owner: P1 (title, source, content). Perspective panel uses P2's /analyze API.
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { formatDate } from "@/components/ArticleCard";
+import ArticleCard, { formatDate } from "@/components/ArticleCard";
 import HighlightedText from "@/components/HighlightedText";
 import PerspectivePanel from "@/components/PerspectivePanel";
-import { addHistory, analyze, getArticle, getKeywords, getSession } from "@/lib/api";
+import { addHistory, analyze, getArticle, getKeywords, getRelated, getSession } from "@/lib/api";
 
 export default function ArticlePage({ params }) {
   const articleId = Number(params.article_id);
   const [article, setArticle] = useState(null);
   const [keywords, setKeywords] = useState([]);
   const [analysis, setAnalysis] = useState(null);
+  const [related, setRelated] = useState([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -21,6 +22,7 @@ export default function ArticlePage({ params }) {
       .catch(() => setKeywords([]));
     // P2's scoring engine: label, scores and the words that matched
     analyze(articleId).then(setAnalysis).catch(() => setAnalysis(null));
+    getRelated(articleId).then((data) => setRelated(data.related)).catch(() => setRelated([]));
 
     // Record a "view" in the reader's history (P2's API) if they are logged in
     const session = getSession();
@@ -97,6 +99,15 @@ export default function ArticlePage({ params }) {
               <span key={word} className="tag">{word}</span>
             ))}
           </div>
+        </>
+      )}
+
+      {related.length > 0 && (
+        <>
+          <h2 className="section-title">More on this topic</h2>
+          {related.map((item) => (
+            <ArticleCard key={item.article_id} article={item} />
+          ))}
         </>
       )}
     </main>

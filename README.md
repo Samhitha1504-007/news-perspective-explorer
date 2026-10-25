@@ -13,7 +13,7 @@ sources frame the same event.
 | MySQL tables | `users`, `topics`, `articles`, `article_topics` | `sources`, `perspective_categories`, `perspective_terms`, `article_perspectives` |
 | MongoDB | `article_content`, `article_metadata`, `search_logs` | `perspective_analysis`, `reading_history`, `comparison_sessions` |
 | Advanced SQL | FULLTEXT search, `sp_add_article` (`04_procedures.sql`) | `v_source_perspective_summary` (`03_views.sql`), trigger (`05_triggers.sql`) |
-| `backend/routes/` | `auth`, `topics`, `search`, `articles`, `admin_articles` | `sources`, `perspective`, `compare`, `history`, `admin_terms` |
+| `backend/routes/` | `auth`, `topics`, `search`, `articles` (+ `/related`), `admin_articles`, `admin_stats` | `sources`, `perspective`, `compare`, `history`, `admin_terms` |
 | `backend/services/` | `auth_service`, `keyword_service`, `article_service` | `scoring_service`, `compare_service`, `history_service` |
 | `frontend/` | `app/`: `/`, `login`, `register`, `search`, `articles/[article_id]`, `admin/articles`; `components/`: `NavBar`, `SearchBar`, `ArticleCard` | perspective panel on article page, `compare/[topic_id]`, `history`, `admin/terms` |
 
