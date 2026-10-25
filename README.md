@@ -6,13 +6,19 @@ sources frame the same event.
 
 **Stack:** Next.js (frontend) · FastAPI (backend) · MySQL + MongoDB (`news_perspective_db`)
 
+## Presentation docs
+
+- [docs/PRESENTATION_GUIDE.md](docs/PRESENTATION_GUIDE.md): how everything works, CRUD list, triggers, procedures, Next.js, MongoDB, modification recipes, viva questions
+- [docs/DEMO_COMMANDS.md](docs/DEMO_COMMANDS.md): every demo command in order (keep open while presenting)
+- [docs/ER_DIAGRAM.md](docs/ER_DIAGRAM.md): ER diagrams (`er-mysql.png`, `er-mongodb.png`)
+
 ## Layout and ownership
 
 | Path | P1: Search, Article & Data | P2: Perspective, Comparison & History |
 |---|---|---|
 | MySQL tables | `users`, `topics`, `articles`, `article_topics` | `sources`, `perspective_categories`, `perspective_terms`, `article_perspectives` |
 | MongoDB | `article_content`, `article_metadata`, `search_logs` | `perspective_analysis`, `reading_history`, `comparison_sessions` |
-| Advanced SQL | FULLTEXT search, `sp_add_article` (`04_procedures.sql`) | `v_source_perspective_summary` (`03_views.sql`), trigger (`05_triggers.sql`) |
+| Advanced SQL | FULLTEXT search; `sp_add_article`, `sp_change_user_role`; 2 triggers on articles/users; `v_article_details` | `sp_topic_perspective_summary`; 2 triggers on perspective_terms; `v_source_perspective_summary` |
 | `backend/routes/` | `auth`, `topics`, `search`, `articles` (+ `/related`), `admin_articles`, `admin_stats` | `sources`, `perspective`, `compare`, `history`, `admin_terms` |
 | `backend/services/` | `auth_service`, `keyword_service`, `article_service` | `scoring_service`, `compare_service`, `history_service` |
 | `frontend/` | `app/`: `/`, `login`, `register`, `search`, `articles/[article_id]`, `admin/articles`; `components/`: `NavBar`, `SearchBar`, `ArticleCard` | perspective panel on article page, `compare/[topic_id]`, `history`, `admin/terms` |
