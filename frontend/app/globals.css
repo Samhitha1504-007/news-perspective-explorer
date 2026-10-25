@@ -154,6 +154,11 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .search-bar { flex-direction: row; max-width: none; }
 .search-bar input { flex: 1; font-size: 17px; padding: 12px 14px; }
 
+/* Filter dropdowns above search results */
+.filters { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin: 16px 0 0; }
+.filters label { font-weight: 400; color: var(--muted); }
+.filters select { padding: 6px 8px; }
+
 /* Login / register box */
 .auth { max-width: 420px; margin: 40px auto; }
 .auth form { max-width: none; }
