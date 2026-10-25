@@ -21,6 +21,7 @@ source database/mysql/03_views.sql;
 source database/mysql/04_procedures.sql;
 source database/mysql/05_triggers.sql;
 source database/mysql/06_seed_data.sql;
+source database/mysql/08_db_roles.sql;
 exit;
 ```
 ```bash
@@ -150,6 +151,24 @@ SELECT @pos AS positive, @neu AS neutral, @crit AS critical;
 ```sql
 SELECT * FROM v_article_details;
 SELECT * FROM v_source_perspective_summary WHERE topic_name = 'Elections';
+```
+
+### Database roles: GRANT / REVOKE
+```sql
+SHOW GRANTS FOR 'npe_app'@'localhost' USING 'npe_app_role';
+SHOW GRANTS FOR 'npe_viewer'@'localhost' USING 'npe_readonly_role';
+```
+In a new terminal: `mysql -u npe_viewer -p` (password `viewer123`)
+```sql
+SELECT COUNT(*) FROM news_perspective_db.articles;   -- works
+DELETE FROM news_perspective_db.articles;            -- ERROR 1142: command denied
+```
+Back as root:
+```sql
+REVOKE DELETE ON news_perspective_db.* FROM 'npe_app_role';
+SHOW GRANTS FOR 'npe_app'@'localhost' USING 'npe_app_role';   -- DELETE gone
+-- now "Delete article" on the website fails: the app really runs as npe_app
+GRANT DELETE ON news_perspective_db.* TO 'npe_app_role';
 ```
 
 ### Viva queries (6 per person) and ALTER / DROP

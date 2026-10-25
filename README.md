@@ -50,6 +50,7 @@ every article shows which words produced its label.
 | Stored procedures | `sp_add_article` (transaction + rollback), `sp_change_user_role` (validation), `sp_topic_perspective_summary` (OUT parameters) |
 | Triggers | `trg_articles_before_insert`, `trg_users_before_insert`, `trg_perspective_terms_after_update`, `trg_perspective_terms_after_delete` |
 | Views | `v_article_details`, `v_source_perspective_summary` |
+| Database roles | `npe_app_role` (data only, no DDL) used by the backend; `npe_readonly_role` (SELECT only); managed with CREATE ROLE, GRANT, REVOKE |
 | Other | FULLTEXT index + `MATCH … AGAINST`, CHECK / UNIQUE / FK with CASCADE and RESTRICT, self-join, upsert, 12 viva queries in `queries.sql` |
 
 ## Project structure
@@ -88,6 +89,7 @@ source database/mysql/03_views.sql;
 source database/mysql/04_procedures.sql;
 source database/mysql/05_triggers.sql;
 source database/mysql/06_seed_data.sql;
+source database/mysql/08_db_roles.sql;
 exit;
 ```
 
@@ -105,7 +107,7 @@ python -m venv venv
 venv\Scripts\activate              # Mac/Linux: source venv/bin/activate
 pip install -r requirements.txt
 copy .env.example .env             # Mac/Linux: cp .env.example .env
-# edit .env: set MYSQL_PASSWORD and JWT_SECRET
+# edit .env: set JWT_SECRET (MySQL user is npe_app from 08_db_roles.sql)
 python seed_content.py
 uvicorn app:app --reload --port 8000
 ```
