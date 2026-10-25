@@ -190,6 +190,12 @@ mark { padding: 0 3px; border-radius: 2px; color: inherit; }
 .legend { display: flex; gap: 16px; font-size: 13px; color: var(--muted); }
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
 
+/* Admin stats: six small number boxes, and two lists side by side */
+.stat-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.stat-grid .stat { border-top-color: var(--ink); }
+.two-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.two-columns li { margin-bottom: 6px; }
+
 /* ---------- Tables (admin terms) ---------- */
 .table-wrap { overflow-x: auto; background: var(--card); border: 1px solid var(--rule); border-radius: 4px; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -204,4 +210,5 @@ td input, td select { padding: 6px 8px; }
   main { padding: 24px 16px 48px; }
   h1 { font-size: 28px; }
   .stats { grid-template-columns: 1fr; }
+  .two-columns { grid-template-columns: 1fr; gap: 0; }
 }

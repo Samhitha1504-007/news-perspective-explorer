@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from routes import (
     admin_articles,
+    admin_stats,
     admin_terms,
     articles,
     auth,
@@ -32,6 +33,7 @@ app.include_router(topics.router)
 app.include_router(search.router)
 app.include_router(articles.router)
 app.include_router(admin_articles.router)
+app.include_router(admin_stats.router)
 
 # P2
 app.include_router(sources.router)

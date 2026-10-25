@@ -95,6 +95,8 @@ export const createArticle = (body) =>
     body: JSON.stringify(body),
   });
 
+export const getStats = () => request("/admin/stats");
+
 // ---------------- P2 ----------------
 
 export const getSources = () => request("/sources");
