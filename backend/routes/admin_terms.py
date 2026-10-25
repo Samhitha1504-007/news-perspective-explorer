@@ -291,3 +291,35 @@ def update_term(
         "rescored_article_ids": rescored,
         "rescore_failures": failures,
     }
+
+
+@router.delete("/admin/terms/{term_id}")
+def delete_term(term_id: int, admin: dict = Depends(require_admin)):
+    connection = get_connection()
+    try:
+        with connection.cursor() as cursor:
+            # The AFTER DELETE trigger flags every analysis with needs_rescore
+            cursor.execute("DELETE FROM perspective_terms WHERE term_id = %s", (term_id,))
+            if cursor.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Term not found")
+        connection.commit()
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT article_id FROM article_perspectives WHERE needs_rescore = TRUE"
+            )
+            article_ids = [row["article_id"] for row in cursor.fetchall()]
+    finally:
+        connection.close()
+
+    # Re-score the flagged articles without the deleted word
+    rescored = 0
+    for article_id in article_ids:
+        try:
+            analyze_article(article_id)
+            rescored += 1
+        except Exception as exc:
+            print(f"Could not rescore article {article_id}: {exc}")
+
+    return {"message": "Term deleted and articles re-scored", "term_id": term_id,
+            "rescored_count": rescored}

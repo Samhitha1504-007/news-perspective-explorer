@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import ArticleCard, { formatDate } from "@/components/ArticleCard";
 import HighlightedText from "@/components/HighlightedText";
 import PerspectivePanel from "@/components/PerspectivePanel";
-import { addHistory, analyze, getArticle, getKeywords, getRelated, getSession } from "@/lib/api";
+import { addHistory, analyze, deleteArticle, getArticle, getKeywords, getRelated, getSession } from "@/lib/api";
 
 export default function ArticlePage({ params }) {
   const articleId = Number(params.article_id);
@@ -13,6 +13,7 @@ export default function ArticlePage({ params }) {
   const [keywords, setKeywords] = useState([]);
   const [analysis, setAnalysis] = useState(null);
   const [related, setRelated] = useState([]);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -26,6 +27,7 @@ export default function ArticlePage({ params }) {
 
     // Record a "view" in the reader's history (P2's API) if they are logged in
     const session = getSession();
+    setIsAdmin(session?.role === "admin");
     if (session) {
       addHistory({
         user_id: session.user_id,
@@ -49,6 +51,16 @@ export default function ArticlePage({ params }) {
         <p>Loading...</p>
       </main>
     );
+  }
+
+  async function handleDelete() {
+    if (!window.confirm("Delete this article from MySQL and MongoDB?")) return;
+    try {
+      await deleteArticle(articleId);
+      window.location.href = "/";
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   // Do not link synthetic demo articles to placeholder domains.
@@ -100,6 +112,12 @@ export default function ArticlePage({ params }) {
             ))}
           </div>
         </>
+      )}
+
+      {isAdmin && (
+        <p style={{ marginTop: 32 }}>
+          <button className="secondary" onClick={handleDelete}>Delete article (admin)</button>
+        </p>
       )}
 
       {related.length > 0 && (

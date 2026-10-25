@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   createTerm,
+  deleteTerm,
   getAdminTerms,
   getSession,
   updateTerm,
@@ -138,6 +139,19 @@ export default function AdminTermsPage() {
       setError(err.message || "Could not add the perspective term.");
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function removeTerm(term) {
+    if (!window.confirm(`Delete "${term.term}"? Articles will be re-scored without it.`)) return;
+    setError("");
+    setMessage("");
+    try {
+      const result = await deleteTerm(term.term_id);
+      setMessage(`"${term.term}" deleted. ${result.rescored_count} article(s) re-scored.`);
+      await loadTerms();
+    } catch (err) {
+      setError(err.message || "Could not delete this term.");
     }
   }
 
@@ -301,7 +315,7 @@ export default function AdminTermsPage() {
                   id="new-weight"
                   type="number"
                   min="0.01"
-                  step="0.1"
+                  step="0.01"
                   required
                   value={form.weight}
                   onChange={(event) =>
@@ -385,7 +399,7 @@ export default function AdminTermsPage() {
                             aria-label={`Weight for ${term.term}`}
                             type="number"
                             min="0.01"
-                            step="0.1"
+                            step="0.01"
                             value={edit.weight ?? term.weight}
                             onChange={(event) =>
                               changeField(
@@ -408,6 +422,13 @@ export default function AdminTermsPage() {
                             {savingId === term.term_id
                               ? "Saving..."
                               : "Save"}
+                          </button>{" "}
+                          <button
+                            className="secondary"
+                            onClick={() => removeTerm(term)}
+                            disabled={savingId !== null || creating}
+                          >
+                            Delete
                           </button>
                         </td>
                       </tr>

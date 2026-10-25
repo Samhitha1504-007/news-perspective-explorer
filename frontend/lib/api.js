@@ -110,6 +110,9 @@ export const createArticle = (body) =>
 
 export const getStats = () => request("/admin/stats");
 
+export const deleteArticle = (articleId) =>
+  request(`/admin/articles/${articleId}`, { method: "DELETE" });
+
 // ---------------- P2 ----------------
 
 export const getSources = () => request("/sources");
@@ -155,3 +158,7 @@ export const updateTerm = (termId, body) =>
     method: "PUT",
     body: JSON.stringify(body),
   });
+
+// Delete a perspective term (the trigger flags articles for re-scoring).
+export const deleteTerm = (termId) =>
+  request(`/admin/terms/${termId}`, { method: "DELETE" });

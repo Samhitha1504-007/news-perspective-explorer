@@ -150,6 +150,9 @@ button {
 }
 button:hover { background: var(--accent); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
+/* Outlined red button for delete actions */
+button.secondary { background: transparent; color: var(--critical); border: 1px solid var(--critical); }
+button.secondary:hover { background: var(--critical); color: #fff; }
 
 .search-bar { flex-direction: row; max-width: none; }
 .search-bar input { flex: 1; font-size: 17px; padding: 12px 14px; }

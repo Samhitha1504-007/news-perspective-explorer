@@ -5,6 +5,7 @@ import pymysql
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from db.mongo import mongo_db
 from db.mysql import get_connection
 from services.article_service import save_article_content
 from services.auth_service import require_admin
@@ -72,3 +73,24 @@ def create_article(body: NewArticleRequest, admin: dict = Depends(require_admin)
         print(f"Article {article_id} saved but not scored: {exc}")
 
     return {"article_id": article_id, "title": body.title.strip(), "label": label}
+
+
+@router.delete("/admin/articles/{article_id}")
+def delete_article(article_id: int, admin: dict = Depends(require_admin)):
+    # MySQL: ON DELETE CASCADE also removes the article's article_topics and
+    # article_perspectives rows, so one DELETE cleans up all three tables.
+    connection = get_connection()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("DELETE FROM articles WHERE article_id = %s", (article_id,))
+            if cursor.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Article not found")
+        connection.commit()
+    finally:
+        connection.close()
+
+    # MongoDB has no foreign keys, so we delete the linked documents ourselves
+    for collection in ["article_content", "article_metadata", "perspective_analysis", "reading_history"]:
+        mongo_db[collection].delete_many({"article_id": article_id})
+
+    return {"message": "Article deleted", "article_id": article_id}
