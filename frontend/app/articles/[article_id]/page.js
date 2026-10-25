@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { formatDate } from "@/components/ArticleCard";
+import HighlightedText from "@/components/HighlightedText";
 import PerspectivePanel from "@/components/PerspectivePanel";
 import { addHistory, analyze, getArticle, getKeywords, getSession } from "@/lib/api";
 
@@ -82,7 +83,11 @@ export default function ArticlePage({ params }) {
       {analysis && <PerspectivePanel analysis={analysis} />}
 
       {article.summary && <p className="summary">{article.summary}</p>}
-      <p className="article-body">{article.content || "No article text stored yet."}</p>
+      <p className="article-body">
+        {article.content
+          ? <HighlightedText text={article.content} terms={analysis?.matched_terms} />
+          : "No article text stored yet."}
+      </p>
 
       {keywords.length > 0 && (
         <>

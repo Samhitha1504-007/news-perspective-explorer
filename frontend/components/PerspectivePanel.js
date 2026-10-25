@@ -48,7 +48,8 @@ export default function PerspectivePanel({ analysis }) {
       )}
 
       <p className="muted">
-        The label is the category with the highest score. Ties count as Neutral.
+        Matched words are highlighted in the article below. The label is the
+        category with the highest score. Ties count as Neutral.
         Admins can change the words and weights on the Terms page.
       </p>
     </section>
