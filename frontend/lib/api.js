@@ -52,6 +52,16 @@ async function request(path, options = {}) {
     ? await res.json()
     : null;
 
+  // 401 = not logged in, or the token expired. Send the user to the login
+  // page, remembering where they were. (Not for /login itself, where 401
+  // just means a wrong password.)
+  if (res.status === 401 && path !== "/login") {
+    logout();
+    const here = window.location.pathname + window.location.search;
+    window.location.href = `/login?next=${encodeURIComponent(here)}`;
+    return new Promise(() => {}); // stop here; the page is changing
+  }
+
   // Show the backend's error message, e.g. "Wrong email or password".
   if (!res.ok) {
     throw new Error(

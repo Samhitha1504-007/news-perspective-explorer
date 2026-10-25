@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from db.mongo import mongo_db
 from db.mysql import get_connection
 from services.article_service import get_topics_for_articles
-from services.auth_service import get_optional_user
+from services.auth_service import get_current_user
 
 router = APIRouter()
 
@@ -49,7 +49,7 @@ SEARCH_SQL = """
 
 
 @router.get("/search")
-def search(query: str, user: dict | None = Depends(get_optional_user)):
+def search(query: str, user: dict = Depends(get_current_user)):
     # Keep only letters, digits and spaces. Symbols like + - * " have
     # special meanings in BOOLEAN MODE and could break the query.
     words = re.sub(r"[^\w\s]", " ", query).strip()
@@ -79,11 +79,11 @@ def search(query: str, user: dict | None = Depends(get_optional_user)):
         for row in rows
     ]
 
-    # Log the search in MongoDB. user_id is None for guests.
+    # Log the search in MongoDB with the user who searched.
     # A logging failure should not break the search itself.
     try:
         mongo_db["search_logs"].insert_one({
-            "user_id": user["user_id"] if user else None,
+            "user_id": user["user_id"],
             "query": query,
             "result_count": len(articles),
             "timestamp": datetime.now(timezone.utc),

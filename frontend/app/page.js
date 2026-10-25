@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import SearchBar from "@/components/SearchBar";
-import { getTopics } from "@/lib/api";
+import { getSession, getTopics } from "@/lib/api";
 
 export default function HomePage() {
   const [topics, setTopics] = useState([]);
   const [error, setError] = useState("");
+  const [loggedIn, setLoggedIn] = useState(true);
 
   useEffect(() => {
+    setLoggedIn(getSession() !== null);
     getTopics().then(setTopics).catch((err) => setError(err.message));
   }, []);
 
@@ -21,6 +23,12 @@ export default function HomePage() {
         Search an event and see how each news source frames it, using a
         rule-based Positive / Neutral / Critical indicator.
       </p>
+      {!loggedIn && (
+        <p className="panel">
+          <Link href="/login">Log in</Link> or <Link href="/register">create an account</Link> to
+          search, read articles and compare sources.
+        </p>
+      )}
       <SearchBar />
 
       <h2 className="section-title">Browse by topic</h2>

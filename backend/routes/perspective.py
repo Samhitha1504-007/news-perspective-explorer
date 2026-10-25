@@ -1,9 +1,11 @@
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from services.scoring_service import analyze_article
+from services.auth_service import get_current_user
 
-router = APIRouter()
+# Every route in this file needs a logged-in user (reader or admin).
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 @router.get("/analyze/{article_id}")

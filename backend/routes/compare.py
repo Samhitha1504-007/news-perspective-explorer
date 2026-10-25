@@ -1,9 +1,11 @@
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from services.compare_service import compare_topic, get_topic_perspectives
+from services.auth_service import get_current_user
 
-router = APIRouter()
+# Every route in this file needs a logged-in user (reader or admin).
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 @router.get("/compare/{topic_id}")

@@ -27,7 +27,8 @@ JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret-change-me")
 JWT_ALGORITHM = "HS256"
 TOKEN_HOURS = 24
 
-# auto_error=False lets us allow guests on some routes (like /search)
+# auto_error=False: a missing token gives None instead of an automatic
+# error, so get_current_user() can return our own "Login required" message.
 bearer = HTTPBearer(auto_error=False)
 
 

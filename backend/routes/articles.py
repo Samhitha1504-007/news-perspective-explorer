@@ -1,11 +1,13 @@
 # Owner: P1
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from db.mongo import mongo_db
 from db.mysql import get_connection
 from services.article_service import get_topics_for_articles
+from services.auth_service import get_current_user
 
-router = APIRouter()
+# Every route in this file needs a logged-in user (reader or admin).
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 @router.get("/articles/{article_id}")
