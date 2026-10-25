@@ -6,16 +6,22 @@ sources frame the same event.
 
 **Stack:** Next.js (frontend) · FastAPI (backend) · MySQL + MongoDB (`news_perspective_db`)
 
+## Presentation docs
+
+- [docs/PRESENTATION_GUIDE.md](docs/PRESENTATION_GUIDE.md): how everything works, CRUD list, triggers, procedures, Next.js, MongoDB, modification recipes, viva questions
+- [docs/DEMO_COMMANDS.md](docs/DEMO_COMMANDS.md): every demo command in order (keep open while presenting)
+- [docs/ER_DIAGRAM.md](docs/ER_DIAGRAM.md): ER diagrams (`er-mysql.png`, `er-mongodb.png`)
+
 ## Layout and ownership
 
 | Path | P1: Search, Article & Data | P2: Perspective, Comparison & History |
 |---|---|---|
 | MySQL tables | `users`, `topics`, `articles`, `article_topics` | `sources`, `perspective_categories`, `perspective_terms`, `article_perspectives` |
 | MongoDB | `article_content`, `article_metadata`, `search_logs` | `perspective_analysis`, `reading_history`, `comparison_sessions` |
-| Advanced SQL | FULLTEXT search, `sp_add_article` (`04_procedures.sql`) | `v_source_perspective_summary` (`03_views.sql`), trigger (`05_triggers.sql`) |
-| `backend/routes/` | `auth`, `topics`, `search`, `articles`, `admin_articles` | `sources`, `perspective`, `compare`, `history`, `admin_terms` |
-| `backend/services/` | `auth_service`, `keyword_service` | `scoring_service` |
-| `frontend/app/` | `/`, `login`, `register`, `search`, `articles/[article_id]`, `admin/articles` | perspective panel on article page, `compare/[topic_id]`, `history`, `admin/terms` |
+| Advanced SQL | FULLTEXT search; `sp_add_article`, `sp_change_user_role`; 2 triggers on articles/users; `v_article_details` | `sp_topic_perspective_summary`; 2 triggers on perspective_terms; `v_source_perspective_summary` |
+| `backend/routes/` | `auth`, `topics`, `search`, `articles` (+ `/related`), `admin_articles`, `admin_stats` | `sources`, `perspective`, `compare`, `history`, `admin_terms` |
+| `backend/services/` | `auth_service`, `keyword_service`, `article_service` | `scoring_service`, `compare_service`, `history_service` |
+| `frontend/` | `app/`: `/`, `login`, `register`, `search`, `articles/[article_id]`, `admin/articles`; `components/`: `NavBar`, `SearchBar`, `ArticleCard` | perspective panel on article page, `compare/[topic_id]`, `history`, `admin/terms` |
 
 `database/mysql/01_schema.sql` and `database/mongodb/01_collections.js` are the
 shared contract. Change a name there only after you've both agreed.
@@ -47,6 +53,7 @@ cd backend
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env   # fill in credentials
+python seed_content.py # article text -> MongoDB, then scores every article
 uvicorn app:app --reload --port 8000
 
 # Frontend
@@ -55,6 +62,15 @@ npm install
 cp .env.example .env.local
 npm run dev
 ```
+
+Demo logins (from `06_seed_data.sql`):
+
+| Email | Password | Role |
+|---|---|---|
+| admin@example.com | admin123 | admin |
+| reader1@example.com | reader123 | reader |
+
+API docs with a "try it" button: http://localhost:8000/docs (click **Authorize** and paste a token from `/login` to call admin routes).
 
 ## Branches
 
