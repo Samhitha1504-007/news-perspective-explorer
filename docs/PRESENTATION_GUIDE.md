@@ -332,6 +332,7 @@ return <h1>{article.title}</h1>;                 // re-renders when data arrives
 | Admin only | `require_admin` → **403** for readers |
 | Whole files protected | `router = APIRouter(dependencies=[Depends(get_current_user)])` |
 | Own data only | history routes compare the token's `user_id` with the requested one |
+| Database account | the backend connects as `npe_app`, not root. Its role (`npe_app_role`) has SELECT/INSERT/UPDATE/DELETE/EXECUTE only, so it cannot DROP or ALTER tables. `npe_readonly_role` is SELECT only. See `08_db_roles.sql` |
 | SQL injection | always parameterised: `cursor.execute("… WHERE email = %s", (email,))`, never string-joined |
 | Same error for wrong email or password | doesn't reveal which emails exist |
 | Registration | always creates `reader`; admins come from seed data or `sp_change_user_role` |
@@ -531,6 +532,8 @@ used for ordering.
 
 **How are passwords stored?** bcrypt hashes. Login hashes the typed password
 and compares.
+
+**Did you use GRANT / REVOKE?** Yes, at the database level. Website roles (admin/reader) are in `users.role` and checked by the backend, because website users never log in to MySQL. For MySQL itself we use least privilege: `CREATE ROLE npe_app_role`, `GRANT SELECT, INSERT, UPDATE, DELETE, EXECUTE` to it, and the backend connects as `npe_app`, which has that role. It cannot DROP or ALTER. `npe_viewer` is read-only. REVOKE removes a privilege again.
 
 **How do you stop a reader using admin features?** The backend checks the role
 in the signed token (`require_admin` → 403). Hiding buttons is only convenience.
