@@ -61,4 +61,57 @@ GROUP BY t.topic_id, t.topic_name
 ORDER BY latest DESC;
 
 -- =========================== P2 =====================================
--- P2-Q1:
+-- P2-Q1 (JOIN): every perspective term with its category, heaviest first.
+SELECT pt.term, pc.category_name, pt.weight
+FROM perspective_terms AS pt
+JOIN perspective_categories AS pc ON pc.category_id = pt.category_id
+ORDER BY pt.weight DESC, pt.term;
+
+-- P2-Q2 (GROUP BY + HAVING): categories whose terms have an average weight
+-- above 1, with how many terms each has.
+SELECT pc.category_name, COUNT(*) AS terms, ROUND(AVG(pt.weight), 2) AS avg_weight
+FROM perspective_terms AS pt
+JOIN perspective_categories AS pc ON pc.category_id = pt.category_id
+GROUP BY pc.category_id, pc.category_name
+HAVING AVG(pt.weight) > 1;
+
+-- P2-Q3 (VIEW): the source comparison for one topic, exactly what
+-- GET /compare/{topic_id} reads.
+SELECT source_name, article_count, positive, neutral, critical
+FROM v_source_perspective_summary
+WHERE topic_name = 'Artificial Intelligence'
+ORDER BY source_name;
+
+-- P2-Q4 (subquery): articles that are more critical than the average
+-- article.
+SELECT a.title, ap.critical_score
+FROM article_perspectives AS ap
+JOIN articles AS a ON a.article_id = ap.article_id
+WHERE ap.critical_score > (SELECT AVG(critical_score) FROM article_perspectives)
+ORDER BY ap.critical_score DESC;
+
+-- P2-Q5 (CASE + GROUP BY): label counts per source in one row each.
+-- The CASE gives 1 when the label matches, 0 otherwise; SUM adds them up.
+SELECT s.source_name,
+       SUM(CASE WHEN pc.category_name = 'Positive' THEN 1 ELSE 0 END) AS positive,
+       SUM(CASE WHEN pc.category_name = 'Neutral'  THEN 1 ELSE 0 END) AS neutral,
+       SUM(CASE WHEN pc.category_name = 'Critical' THEN 1 ELSE 0 END) AS critical
+FROM sources AS s
+JOIN articles AS a ON a.source_id = s.source_id
+JOIN article_perspectives AS ap ON ap.article_id = a.article_id
+JOIN perspective_categories AS pc ON pc.category_id = ap.category_id
+GROUP BY s.source_id, s.source_name
+ORDER BY s.source_name;
+
+-- P2-Q6 (NOT EXISTS, correlated subquery): sources that have never
+-- published a Critical article. The inner query runs once per source.
+SELECT s.source_name
+FROM sources AS s
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM articles AS a
+    JOIN article_perspectives AS ap ON ap.article_id = a.article_id
+    JOIN perspective_categories AS pc ON pc.category_id = ap.category_id
+    WHERE a.source_id = s.source_id
+      AND pc.category_name = 'Critical'
+);

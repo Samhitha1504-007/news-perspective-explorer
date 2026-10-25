@@ -18,5 +18,18 @@ db.article_metadata.createIndex({ keywords: 1 });
 db.search_logs.createIndex({ user_id: 1, timestamp: -1 });
 
 // ---------------- P2 ----------------
-// TODO(P2): perspective_analysis(article_id unique), reading_history(user_id, timestamp),
-//           comparison_sessions(topic_id)
+// perspective_analysis: one analysis per article, looked up by article_id.
+db.perspective_analysis.createIndex({ article_id: 1 }, { unique: true });
+
+// perspective_analysis: "all Critical articles" filters by label.
+db.perspective_analysis.createIndex({ label: 1 });
+
+// reading_history: GET /history/{user_id} filters by user and sorts newest
+// first, so one compound index serves the whole query.
+db.reading_history.createIndex({ user_id: 1, timestamp: -1 });
+
+// reading_history: "views per article" groups by article_id.
+db.reading_history.createIndex({ article_id: 1 });
+
+// comparison_sessions: "which topics are compared most" groups by topic_id.
+db.comparison_sessions.createIndex({ topic_id: 1 });

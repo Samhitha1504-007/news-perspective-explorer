@@ -32,4 +32,33 @@ db.search_logs.aggregate([
 ]);
 
 // =========================== P2 =====================================
-// P2-M1:
+// P2-M1: find all Critical analyses, showing the words that matched
+// (matched_terms is an array of objects).
+db.perspective_analysis.find(
+  { label: "Critical" },
+  { _id: 0, article_id: 1, label: 1, "matched_terms.term": 1 }
+);
+
+// P2-M2: how many articles got each label.
+db.perspective_analysis.aggregate([
+  { $group: { _id: "$label", articles: { $sum: 1 } } },
+  { $sort: { articles: -1 } },
+]);
+
+// P2-M3: one reader's recent activity (uses the user_id + timestamp index),
+// then the most opened articles across all readers.
+db.reading_history.find({ user_id: 2 }).sort({ timestamp: -1 }).limit(10);
+
+db.reading_history.aggregate([
+  { $group: { _id: "$article_id", views: { $sum: 1 } } },
+  { $sort: { views: -1 } },
+  { $limit: 5 },
+]);
+
+// P2-M4: which topics people compare most, and how many different users
+// compared each ($addToSet collects unique values, $size counts them).
+db.comparison_sessions.aggregate([
+  { $group: { _id: "$topic_id", comparisons: { $sum: 1 }, users: { $addToSet: "$user_id" } } },
+  { $project: { _id: 0, topic_id: "$_id", comparisons: 1, unique_users: { $size: "$users" } } },
+  { $sort: { comparisons: -1 } },
+]);
