@@ -1,4 +1,3 @@
-
 "use client";
 // Owner: P1 (title, source, content) + P2 (perspective panel)
 import Link from "next/link";
@@ -50,42 +49,44 @@ export default function ArticlePage({ params }) {
     article.url && !/example\.(com|org|net)/i.test(article.url);
 
   return (
-    <main>
+    <main className="narrow">
+      <p className="kicker">{article.source.source_name}</p>
       <h1>{article.title}</h1>
 
       <p className="muted">
-        {article.source.source_name} · {formatDate(article.published_at)}
+        {formatDate(article.published_at)}
         {hasRealSourceUrl ? (
           <>
             {" · "}
             <a href={article.url} target="_blank" rel="noreferrer">
-              Read Original
+              Read original
             </a>
           </>
         ) : (
-          <span> · Synthetic demo article — no original source available.</span>
+          <span> · Synthetic demo article, no original source</span>
         )}
       </p>
 
-      <div className="topics">
+      <div className="tags">
         {article.topics.map((topic) => (
-          <Link key={topic.topic_id} href={`/compare/${topic.topic_id}`}>
-            Compare sources on {topic.topic_name}
+          <Link key={topic.topic_id} href={`/compare/${topic.topic_id}`} className="tag">
+            Compare sources on {topic.topic_name} →
           </Link>
         ))}
       </div>
 
-      <div className="card">
-        <p>
-          <strong>Summary:</strong> {article.summary}
-        </p>
-        <p className="content">
-          {article.content || "No article text stored yet."}
-        </p>
-      </div>
+      {article.summary && <p className="summary">{article.summary}</p>}
+      <p className="article-body">{article.content || "No article text stored yet."}</p>
 
       {keywords.length > 0 && (
-        <p className="muted">Keywords: {keywords.join(", ")}</p>
+        <>
+          <h2 className="section-title">Keywords</h2>
+          <div className="tags">
+            {keywords.map((word) => (
+              <span key={word} className="tag">{word}</span>
+            ))}
+          </div>
+        </>
       )}
 
       {/* P2: perspective panel goes here, e.g. <PerspectivePanel articleId={articleId} /> */}

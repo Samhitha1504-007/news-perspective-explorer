@@ -59,8 +59,10 @@ export default function AdminArticlesPage() {
 
   return (
     <main>
-      <h1>Add article</h1>
-      <form onSubmit={handleSubmit}>
+      <p className="kicker">Admin</p>
+      <h1>Add an article</h1>
+      <p className="lede">Saved with the sp_add_article stored procedure, then scored automatically.</p>
+      <form onSubmit={handleSubmit} className="panel">
         <select name="source_id" value={form.source_id} onChange={handleChange} required>
           <option value="">Choose a source</option>
           {sources.map((source) => (
@@ -76,7 +78,7 @@ export default function AdminArticlesPage() {
         <div>
           <p>Topics (choose at least one):</p>
           {topics.map((topic) => (
-            <label key={topic.topic_id} style={{ display: "block" }}>
+            <label key={topic.topic_id} style={{ display: "block", fontWeight: 400 }}>
               <input type="checkbox" checked={topicIds.includes(topic.topic_id)}
                 onChange={() => toggleTopic(topic.topic_id)} /> {topic.topic_name}
             </label>

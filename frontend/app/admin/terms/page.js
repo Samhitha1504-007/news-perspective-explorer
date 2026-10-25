@@ -213,9 +213,10 @@ export default function AdminTermsPage() {
 
   return (
     <main>
-      <h1>Admin: Perspective Terms</h1>
+      <p className="kicker">Admin</p>
+      <h1>Perspective terms</h1>
 
-      <p className="muted">
+      <p className="lede">
         Manage the terms used to classify articles as Positive, Neutral, or
         Critical. Saving a change may trigger article re-scoring.
       </p>
@@ -234,15 +235,7 @@ export default function AdminTermsPage() {
         </button>
       ) : (
         <>
-          <section
-            style={{
-              margin: "24px 0",
-              padding: "20px",
-              border: "1px solid #d1d5db",
-              borderRadius: "10px",
-              maxWidth: "650px",
-            }}
-          >
+          <section className="panel" style={{ maxWidth: 650 }}>
             <h2>Add New Perspective Term</h2>
 
             <p className="muted">
@@ -324,12 +317,12 @@ export default function AdminTermsPage() {
             </form>
           </section>
 
-          <h2>Existing Perspective Terms</h2>
+          <h2 className="section-title">Existing perspective terms</h2>
 
           {terms.length === 0 ? (
             <p>No perspective terms were found.</p>
           ) : (
-            <div style={{ overflowX: "auto" }}>
+            <div className="table-wrap">
               <table>
                 <thead>
                   <tr>

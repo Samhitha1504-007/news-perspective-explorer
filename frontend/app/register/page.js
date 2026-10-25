@@ -27,16 +27,16 @@ export default function RegisterPage() {
 
   if (done) {
     return (
-      <main>
+      <main className="auth">
         <p className="success">Account created. <Link href="/login">Login now</Link></p>
       </main>
     );
   }
 
   return (
-    <main>
+    <main className="auth">
       <h1>Register</h1>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="panel">
         <input name="name" placeholder="Name" value={form.name} onChange={handleChange} required />
         <input name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange} required />
         <input name="password" type="password" placeholder="Password (min 6 characters)"

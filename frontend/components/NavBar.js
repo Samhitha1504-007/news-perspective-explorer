@@ -19,12 +19,17 @@ export default function NavBar() {
 
   return (
     <nav>
-      <Link href="/">News Perspective Explorer</Link>
+      <Link href="/" className="brand">News Perspective Explorer</Link>
       <span className="spacer" />
       {session ? (
         <>
           <Link href="/history">History</Link>
-          {session.role === "admin" && <Link href="/admin/articles">Admin</Link>}
+          {session.role === "admin" && (
+            <>
+              <Link href="/admin/articles">Add article</Link>
+              <Link href="/admin/terms">Terms</Link>
+            </>
+          )}
           <Link href="/">{session.name}</Link>
           <a href="#" onClick={handleLogout}>Logout</a>
         </>

@@ -22,9 +22,9 @@ export default function LoginPage() {
   }
 
   return (
-    <main>
+    <main className="auth">
       <h1>Login</h1>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="panel">
         <input type="email" placeholder="Email" value={email}
           onChange={(e) => setEmail(e.target.value)} required />
         <input type="password" placeholder="Password" value={password}

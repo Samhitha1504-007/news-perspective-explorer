@@ -30,11 +30,13 @@ export default function SearchResultsPage({ searchParams }) {
       <SearchBar initialQuery={query} />
       {error && <p className="error">{error}</p>}
       {results && (
-        <p className="muted">{results.count} article(s) for &quot;{results.query}&quot;</p>
+        <p className="muted">
+          {results.count} article(s) for &quot;{results.query}&quot;, grouped by source
+        </p>
       )}
       {Object.entries(bySource).map(([sourceName, articles]) => (
         <section key={sourceName}>
-          <h2>{sourceName}</h2>
+          <h2 className="section-title">{sourceName} · {articles.length}</h2>
           {articles.map((article) => (
             <ArticleCard key={article.article_id} article={article} />
           ))}

@@ -11,6 +11,10 @@ export default function RootLayout({ children }) {
       <body>
         <NavBar />
         {children}
+        <footer>
+          Perspective labels are rule-based indicators, not a measure of bias.
+          · News Perspective Explorer, DBMS project
+        </footer>
       </body>
     </html>
   );
