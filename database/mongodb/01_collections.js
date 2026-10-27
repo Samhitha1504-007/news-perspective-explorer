@@ -1,79 +1,63 @@
-// MongoDB collections (SHARED CONTRACT). Run with:
-//   mongosh "mongodb://localhost:27017" database/mongodb/01_collections.js
+// MongoDB collections with $jsonSchema validators. Run:
+//   mongosh database/mongodb/01_collections.js
+// Re-running updates the validators (collMod) instead of failing.
 //
-// Rules:
-// - MongoDB's own _id is the document key.
-// - article_id / user_id / topic_id are the cross-database references and
-//   hold the same INT values as MySQL. Never assume _id == MySQL id.
-// - snake_case everywhere.
-
+// MongoDB holds the semi-structured and event data; MySQL holds the
+// entities and relationships. They are linked by the same integer ids
+// (article_id, user_id, topic_id); MongoDB's own _id is never used as a link.
 db = db.getSiblingDB("news_perspective_db");
 
+const INT = { bsonType: ["int", "long"] };
+
 const collections = {
-  // ---------------- P1 ----------------
-  article_content: {
-    required: ["article_id", "content", "source_url"],
-    properties: {
-      article_id: { bsonType: "int" },
-      content: { bsonType: "string" },
-      source_url: { bsonType: "string" },
-    },
-  },
+  // P1: keywords extracted from each article's text (an array per article)
   article_metadata: {
-    required: ["article_id", "keywords", "entities", "word_count", "tags"],
+    required: ["article_id", "keywords", "word_count"],
     properties: {
-      article_id: { bsonType: "int" },
-      keywords: { bsonType: "array" },
-      entities: { bsonType: "array" },
-      word_count: { bsonType: "int" },
-      tags: { bsonType: "array" },
+      article_id: INT,
+      keywords: { bsonType: "array", items: { bsonType: "string" } },
+      word_count: INT,
     },
   },
+  // P1: one document per search
   search_logs: {
-    required: ["query", "result_count", "timestamp"],
+    required: ["user_id", "query", "result_count", "timestamp"],
     properties: {
-      user_id: { bsonType: ["int", "null"] }, // null for guest searches
+      user_id: INT,
       query: { bsonType: "string" },
-      result_count: { bsonType: "int" },
+      result_count: INT,
       timestamp: { bsonType: "date" },
     },
   },
-
-  // ---------------- P2 ----------------
-  perspective_analysis: {
-    required: ["article_id", "label", "matched_terms", "term_weights", "raw_scores", "analyzed_at"],
-    properties: {
-      article_id: { bsonType: "int" },
-      label: { enum: ["Positive", "Neutral", "Critical"] },
-      matched_terms: { bsonType: "array" },
-      term_weights: { bsonType: ["object", "array"] },
-      raw_scores: { bsonType: "object" },
-      analyzed_at: { bsonType: "date" },
-    },
-  },
+  // P2: one document per article view
   reading_history: {
     required: ["user_id", "article_id", "event_type", "timestamp"],
     properties: {
-      user_id: { bsonType: "int" },
-      article_id: { bsonType: "int" },
+      user_id: INT,
+      article_id: INT,
       event_type: { bsonType: "string" },
       timestamp: { bsonType: "date" },
     },
   },
+  // P2: one document per comparison page visit, with the sources compared
   comparison_sessions: {
     required: ["user_id", "topic_id", "compared_sources", "timestamp"],
     properties: {
-      user_id: { bsonType: "int" },
-      topic_id: { bsonType: "int" },
-      compared_sources: { bsonType: "array" },
+      user_id: INT,
+      topic_id: INT,
+      compared_sources: { bsonType: "array", items: { bsonType: "string" } },
       timestamp: { bsonType: "date" },
     },
   },
 };
 
 for (const [name, schema] of Object.entries(collections)) {
-  if (!db.getCollectionNames().includes(name)) {
-    db.createCollection(name, { validator: { $jsonSchema: { bsonType: "object", ...schema } } });
-    print(`created ${name}`);
+  const validator = { $jsonSchema: { bsonType: "object", ...schema } };
+  if (db.getCollectionNames().includes(name)) {
+    db.runCommand({ collMod: name, validator });
+    print(`updated validator: ${name}`);
+  } else {
+    db.createCollection(name, { validator });
+    print(`created: ${name}`);
   }
 }

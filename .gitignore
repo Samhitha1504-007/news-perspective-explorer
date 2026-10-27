@@ -10,13 +10,6 @@ node_modules/
 out/
 npm-debug.log*
 
-# Python
-__pycache__/
-*.pyc
-venv/
-.venv/
-.pytest_cache/
-
 # OS / editors
 .DS_Store
 .vscode/

@@ -1,3 +1,4 @@
+// Owner: P2
 // Article text with the matched perspective words coloured by category.
 // `terms` is matched_terms from GET /analyze/{id}.
 //

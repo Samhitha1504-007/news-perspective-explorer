@@ -41,8 +41,6 @@ export default function AdminArticlesPage() {
       const result = await createArticle({
         ...form,
         source_id: Number(form.source_id),
-        url: form.url || null,
-        published_at: form.published_at || null,
         topic_ids: topicIds,
       });
       setMessage(`Saved as article ${result.article_id} (perspective: ${result.label || "not scored"})`);
@@ -61,7 +59,7 @@ export default function AdminArticlesPage() {
     <main>
       <p className="kicker">Admin</p>
       <h1>Add an article</h1>
-      <p className="lede">Saved with the sp_add_article stored procedure, then scored automatically.</p>
+      <p className="lede">Saved by the sp_add_article stored procedure in one transaction; the insert trigger scores it in SQL.</p>
       <form onSubmit={handleSubmit} className="panel">
         <select name="source_id" value={form.source_id} onChange={handleChange} required>
           <option value="">Choose a source</option>
@@ -70,10 +68,10 @@ export default function AdminArticlesPage() {
           ))}
         </select>
         <input name="title" placeholder="Title" value={form.title} onChange={handleChange} required />
-        <input name="url" placeholder="URL (optional)" value={form.url} onChange={handleChange} />
-        <input name="published_at" type="datetime-local" value={form.published_at} onChange={handleChange} />
+        <input name="url" type="url" placeholder="Link to the original article (https://...)" value={form.url} onChange={handleChange} required />
+        <input name="published_at" type="datetime-local" value={form.published_at} onChange={handleChange} required />
         <textarea name="summary" placeholder="Short summary" rows={2} value={form.summary} onChange={handleChange} />
-        <textarea name="content" placeholder="Full article text" rows={8} value={form.content} onChange={handleChange} required />
+        <textarea name="content" placeholder="Article text or your own summary of it (this is what SQL scores)" rows={8} value={form.content} onChange={handleChange} required />
 
         <div>
           <p>Topics (choose at least one):</p>

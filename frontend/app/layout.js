@@ -1,3 +1,4 @@
+// Owner: P1 + P2 (shared)
 import NavBar from "@/components/NavBar";
 import "./globals.css";
 

@@ -1,5 +1,5 @@
 "use client";
-// Owner: P1
+// Owner: P2
 // Admin dashboard. Numbers come from GET /admin/stats, which combines
 // MySQL (counts, GROUP BY) and MongoDB (aggregations on logs).
 import Link from "next/link";
@@ -22,6 +22,9 @@ export default function AdminStatsPage() {
     ["Articles", stats.totals.articles],
     ["Sources", stats.totals.sources],
     ["Topics", stats.totals.topics],
+    ["Comments", stats.totals.comments],
+    ["Bookmarks", stats.totals.bookmarks],
+    ["Label votes", stats.totals.feedback],
     ["Searches", stats.totals.searches],
     ["Article views", stats.totals.article_views],
   ];
@@ -41,7 +44,7 @@ export default function AdminStatsPage() {
         ))}
       </div>
 
-      <h2 className="section-title">Articles per source (MySQL GROUP BY)</h2>
+      <h2 className="section-title">Articles per source by label (MySQL GROUP BY on a view)</h2>
       <div className="table-wrap">
         <table>
           <thead>
@@ -59,6 +62,37 @@ export default function AdminStatsPage() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {!stats.mongo_ok && <p className="error">MongoDB is not reachable, so search and view statistics are empty.</p>}
+
+      <div className="two-columns">
+        <section>
+          <h2 className="section-title">Most saved (CTE + RANK)</h2>
+          {stats.most_saved.length === 0 ? <p className="muted">No bookmarks yet.</p> : (
+            <ol>
+              {stats.most_saved.map((row) => (
+                <li key={row.article_id}>
+                  <Link href={`/articles/${row.article_id}`}>{row.title}</Link>
+                  <span className="muted"> · {row.saves} save(s), rank {row.rnk}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+        <section>
+          <h2 className="section-title">Most disputed labels</h2>
+          {stats.disputed.length === 0 ? <p className="muted">No reader votes yet.</p> : (
+            <ol>
+              {stats.disputed.map((row) => (
+                <li key={row.article_id}>
+                  <Link href={`/articles/${row.article_id}`}>{row.title}</Link>
+                  <span className="muted"> · {row.label}, {row.agreement_pct}% agree ({row.votes} vote(s))</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
       </div>
 
       <div className="two-columns">

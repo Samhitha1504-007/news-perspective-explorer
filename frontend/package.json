@@ -1,14 +1,19 @@
 {
-  "name": "news-perspective-explorer-frontend",
+  "name": "news-perspective-explorer",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "seed:mongo": "node --env-file=.env.local scripts/seed-mongo.mjs"
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.3",
+    "mongodb": "^6.21.0",
+    "mysql2": "^3.24.6",
     "next": "14.2.15",
     "react": "18.3.1",
     "react-dom": "18.3.1"

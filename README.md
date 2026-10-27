@@ -1,131 +1,84 @@
 # News Perspective Explorer
 
-A DBMS project that shows how different news sources frame the same event.
-Search a topic, read articles from several sources, see a **rule-based
-Positive / Neutral / Critical perspective indicator** for each one, and compare
-sources side by side.
+DBMS Level 3 project. Readers search a news event, read how different outlets
+covered it, and see a rule-based **Positive / Neutral / Critical** label for each
+article (scores and label are computed by SQL and stored in `classified_as`). They can save articles, follow topics and sources, comment, and agree or
+disagree with a label. Admins add articles, edit the scoring terms and see statistics.
 
-The label is a transparent word-counting indicator, not a measure of bias:
-every article shows which words produced its label.
+**Stack:** MySQL 8 (main data and all scoring logic) · MongoDB (keywords and activity
+logs) · Next.js 14 (pages and API routes). There is no Python and no separate backend:
+the classification is done entirely in SQL (functions, procedures, triggers), and the
+API is Next.js route handlers in `frontend/app/api`.
 
-**Stack:** Next.js (frontend) · FastAPI / Python (backend) · MySQL + MongoDB (both named `news_perspective_db`)
+All 15 seed articles are real published articles (real title, date and link). The
+`content` column holds a short summary we wrote ourselves, and that is the text SQL scores.
 
-| Home | Article with perspective panel |
-|---|---|
-| ![Home page](docs/screenshots/home.png) | ![Article page](docs/screenshots/article.png) |
-| **Source comparison** | **Admin statistics** |
-| ![Comparison page](docs/screenshots/compare.png) | ![Admin stats](docs/screenshots/admin-stats.png) |
+## Documents
 
-## Features
+- [docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md): ER diagram, relational schema, MongoDB model, mapping rules
+- [docs/DEMO_COMMANDS.md](docs/DEMO_COMMANDS.md): every command for the demo, in order
+- [docs/PRESENTATION_GUIDE.md](docs/PRESENTATION_GUIDE.md): how it works, who did what, viva questions
 
-**Readers** (login required)
-- FULLTEXT search, results grouped by source, with perspective and source filters
-- Article page: perspective panel (label, scores, matched words), matched words highlighted in the text, keywords, related articles from other sources
-- Source comparison per topic: label counts and each source's Positive / Neutral / Critical share
-- Personal reading history
-
-**Admins**
-- Add articles (saved by a stored procedure in one transaction, scored automatically) and delete them
-- Add, edit and delete perspective terms and weights; a trigger flags articles and they are re-scored
-- Statistics page: MySQL totals and GROUP BY, MongoDB aggregations on searches and views
-
-**Security:** bcrypt password hashes, JWT login tokens, admin/reader roles checked in the backend (401/403), parameterised SQL.
-
-## Documentation
-
-| Document | What's in it |
-|---|---|
-| [docs/PRESENTATION_GUIDE.md](docs/PRESENTATION_GUIDE.md) | How everything works: architecture, database design, CRUD list, triggers, procedures, views, MongoDB, Next.js, security, the scoring algorithm, modification recipes, viva questions |
-| [docs/DEMO_COMMANDS.md](docs/DEMO_COMMANDS.md) | Every demo command in order: reset, start, website walkthrough, MySQL and MongoDB demos |
-| [docs/ER_DIAGRAM.md](docs/ER_DIAGRAM.md) | ER diagrams for MySQL and the MongoDB links (`er-mysql.png`, `er-mongodb.png`) |
-
-## Database at a glance
-
-**MySQL (8 tables):** `users`, `sources`, `topics`, `articles`, `article_topics` (many-to-many bridge), `perspective_categories`, `perspective_terms`, `article_perspectives`
-
-**MongoDB (6 collections):** `article_content`, `article_metadata`, `perspective_analysis`, `search_logs`, `reading_history`, `comparison_sessions`, linked to MySQL by the same integer `article_id` / `user_id` / `topic_id`
-
-| Advanced SQL | Objects |
-|---|---|
-| Stored procedures | `sp_add_article` (transaction + rollback), `sp_change_user_role` (validation), `sp_topic_perspective_summary` (OUT parameters) |
-| Triggers | `trg_articles_before_insert`, `trg_users_before_insert`, `trg_perspective_terms_after_update`, `trg_perspective_terms_after_delete` |
-| Views | `v_article_details`, `v_source_perspective_summary` |
-| Database roles | `npe_app_role` (data only, no DDL) used by the backend; `npe_readonly_role` (SELECT only); managed with CREATE ROLE, GRANT, REVOKE |
-| Other | FULLTEXT index + `MATCH … AGAINST`, CHECK / UNIQUE / FK with CASCADE and RESTRICT, self-join, upsert, 12 viva queries in `queries.sql` |
-
-## Project structure
+## Folder layout
 
 ```
-backend/                 FastAPI app
-  app.py                 creates the app, includes every router
-  routes/                one file per feature (auth, search, articles, compare, history, admin_*)
-  services/              shared logic: auth, scoring, keywords, comparison, history
-  db/                    MySQL and MongoDB connections (settings from .env)
-  seed_content.py        loads article text into MongoDB and scores every article
-frontend/                Next.js (App Router)
-  app/                   one folder per page; [param] folders are URL parameters
-  components/            NavBar, SearchBar, ArticleCard, PerspectivePanel, HighlightedText
-  lib/api.js             every backend call, adds the login token
-database/
-  mysql/                 01 schema · 02 ALTER/DROP demo · 03 views · 04 procedures · 05 triggers
-                         06 seed data · 07 CRUD demo · queries.sql (viva queries)
-  mongodb/               01 collections + validators · 02 indexes · 03 seed · 04 CRUD demo
-                         aggregations.js · article_content.json
-docs/                    guide, demo commands, ER diagrams, screenshots
+database/mysql/
+  01_schema.sql               14 tables: 7 entity tables + 7 relationship tables
+  02_functions_procedures.sql 3 functions, 8 procedures (scoring engine, transaction, feed)
+  03_views.sql                5 views (derived label, score pivot, comparison, feedback)
+  04_triggers.sql             11 triggers (validation + automatic re-scoring)
+  05_seed_data.sql            categories, terms, sources, topics, users, 15 real articles
+  06_db_roles.sql             MySQL roles admin_role / reader_role + their accounts
+  07_crud_demo.sql            CRUD demo (safe to re-run)
+  08_alter_drop_demo.sql      ALTER / DROP demo (leaves the schema unchanged)
+  queries.sql                 6 viva queries per person
+database/mongodb/
+  01_collections.js           4 collections with $jsonSchema validators
+  02_indexes.js               unique, multikey and compound indexes
+  03_crud_demo.js             CRUD demo
+  aggregations.js             3 aggregation queries per person
+frontend/
+  app/api/**/route.js         27 API routes (server side, talk to MySQL and MongoDB)
+  app/**/page.js              pages
+  components/                 shared React components
+  lib/server/                 db.js (MySQL pool), mongo.js, auth.js (JWT), keywords.js
+  lib/api.js                  browser-side calls to /api
+  scripts/seed-mongo.mjs      fills MongoDB from the MySQL articles
 ```
 
-## Setup
+## Setup (Windows PowerShell)
 
-You need MySQL 8, MongoDB (with `mongosh`), Python 3.10+ and Node.js 18+.
-Run every command from the project folder unless it says `cd`.
+Needs MySQL 8, MongoDB 6+ (with `mongosh`) and Node.js 20.6 or newer.
 
-**1. MySQL**
-```bash
+```powershell
+# 1. MySQL: open the client from the repo folder, then source the files in order
 mysql -u root -p
 ```
 ```sql
-source database/mysql/01_schema.sql;
-source database/mysql/03_views.sql;
-source database/mysql/04_procedures.sql;
-source database/mysql/05_triggers.sql;
-source database/mysql/06_seed_data.sql;
-source database/mysql/08_db_roles.sql;
-exit;
+source database/mysql/01_schema.sql
+source database/mysql/02_functions_procedures.sql
+source database/mysql/03_views.sql
+source database/mysql/04_triggers.sql
+source database/mysql/05_seed_data.sql
+source database/mysql/06_db_roles.sql
+exit
 ```
-
-**2. MongoDB**
-```bash
+```powershell
+# 2. MongoDB
 mongosh database/mongodb/01_collections.js
 mongosh database/mongodb/02_indexes.js
-mongosh database/mongodb/03_seed.js
-```
 
-**3. Backend** (terminal 1)
-```bash
-cd backend
-python -m venv venv
-venv\Scripts\activate              # Mac/Linux: source venv/bin/activate
-pip install -r requirements.txt
-copy .env.example .env             # Mac/Linux: cp .env.example .env
-# edit .env: set JWT_SECRET (MySQL user is npe_app from 08_db_roles.sql)
-python seed_content.py
-uvicorn app:app --reload --port 8000
-```
-
-**4. Frontend** (terminal 2)
-```bash
+# 3. Website
 cd frontend
 npm install
-copy .env.example .env.local       # Mac/Linux: cp .env.example .env.local
-npm run dev
+copy .env.example .env.local
+npm run seed:mongo        # keywords for every article + some demo activity
+npm run dev               # http://localhost:3000
 ```
 
-Open **http://localhost:3000**. API docs with a "Try it out" button are at
-**http://localhost:8000/docs**.
+Re-running `01_schema.sql` drops and rebuilds the database, so run 02 to 06 again after it.
 
-To start over with fresh data, see section 0 of [docs/DEMO_COMMANDS.md](docs/DEMO_COMMANDS.md).
-
-## Demo logins
+Demo logins:
 
 | Email | Password | Role |
 |---|---|---|
@@ -133,31 +86,27 @@ To start over with fresh data, see section 0 of [docs/DEMO_COMMANDS.md](docs/DEM
 | reader1@example.com | reader123 | reader |
 | reader2@example.com | reader123 | reader |
 
-New accounts registered on the website are always readers. Promote one with
-`CALL sp_change_user_role('email@example.com', 'admin');`
+## Who owns what
 
-## API
+Every file in `frontend/` starts with an `// Owner:` comment, and every SQL object has a
+`-- P1` / `-- P2` comment above it.
 
-| Method | Endpoint | Access |
+| | P1 (Samhitha): articles, search and reader features | P2 (Samika): perspective scoring, comparison and analytics |
 |---|---|---|
-| POST | `/register`, `/login` | public |
-| GET | `/topics`, `/sources` | public |
-| GET | `/search?query=…` | logged in |
-| GET | `/articles/{id}`, `/articles/{id}/related`, `/keywords/{id}` | logged in |
-| GET | `/analyze/{id}` | logged in |
-| GET | `/compare/{topic_id}`, `/perspectives/{topic_id}` | logged in |
-| GET / POST | `/history/{user_id}`, `/history` | logged in, own history (admins: anyone's) |
-| POST / DELETE | `/admin/articles`, `/admin/articles/{id}` | admin |
-| GET / POST / PUT / DELETE | `/admin/terms`, `/admin/terms/{id}` | admin |
-| GET | `/admin/stats` | admin |
+| Entity tables | `users`, `topics`, `articles`, `comments` | `sources`, `perspective_categories`, `perspective_terms` |
+| Relationship tables | `article_topics`, `bookmarks`, `topic_follows`, `source_follows` | `classified_as`, `term_matches`, `label_feedback` |
+| Functions / procedures | `sp_add_article` (transaction), `sp_change_user_role`, `sp_user_feed` | `fn_count_term`, `fn_article_label`, `fn_agreement_pct`, `sp_compute_scores`, `sp_refresh_labels`, `sp_score_article`, `sp_match_term`, `sp_topic_perspective_summary`, `sp_set_feedback` |
+| Views | `v_article_details` | `v_article_labels`, `v_article_scores`, `v_source_perspective_summary`, `v_article_feedback` |
+| Triggers | 4 validation triggers (articles, users, comments) | 7 scoring triggers (articles, perspective_terms) |
+| Other SQL | FULLTEXT search, P1 queries, P1 part of ALTER/DROP | `06_db_roles.sql`, P2 queries, P2 part of ALTER/DROP |
+| MongoDB | `article_metadata`, `search_logs` | `reading_history`, `comparison_sessions` |
+| API | login, register, topics, sources, search, articles, related, comments, bookmarks, follows, feed, admin/articles | analyze, compare, perspectives, keywords, history, feedback, admin/terms, admin/stats |
+| Pages | home, login, register, search, article page, feed, saved, admin add-article | compare, history, admin terms, admin stats, perspective panel + feedback box |
 
-## Team
+## Rules we follow
 
-| | Module | Owns |
-|---|---|---|
-| **Person 1:** Samhitha | Search, articles and users | `users`, `topics`, `articles`, `article_topics`; `article_content`, `article_metadata`, `search_logs` |
-| **Person 2:** Samika | Perspective, comparison and history | `sources`, `perspective_categories`, `perspective_terms`, `article_perspectives`; `perspective_analysis`, `reading_history`, `comparison_sessions` |
-
-Naming rules both modules follow: snake_case everywhere; `article_id`,
-`topic_id` and `user_id` as the shared ids; ISO 8601 dates in API JSON;
-never commit `.env`.
+- snake_case everywhere; `article_id`, `topic_id`, `user_id` mean the same thing in MySQL, MongoDB and the API.
+- Database credentials live only in `frontend/.env.local`, which is git-ignored. Never commit it.
+- RBAC: the website and MySQL use the same two roles. An admin's requests run as MySQL
+  account `npe_admin` (`admin_role`), a reader's as `npe_reader` (`reader_role`), never root.
+- Each person commits their own files from their own GitHub account.

@@ -1,8 +1,13 @@
 // Owner: P1
-// One search result. `article` has the shape returned by GET /search.
+// One article in a list. `article` comes from v_article_details
+// (search, feed, bookmarks, related): topics is a comma-separated string.
 import Link from "next/link";
 
-export default function ArticleCard({ article }) {
+export default function ArticleCard({ article, children }) {
+  const topics = Array.isArray(article.topics)
+    ? article.topics.map((t) => t.topic_name)
+    : (article.topics || "").split(", ").filter(Boolean);
+
   return (
     <div className="card">
       <h3>
@@ -13,10 +18,9 @@ export default function ArticleCard({ article }) {
       </p>
       <div className="tags">
         {article.label && <span className={`label label-${article.label}`}>{article.label}</span>}
-        {(article.topics || []).map((topic) => (
-          <span key={topic.topic_id} className="tag">{topic.topic_name}</span>
-        ))}
+        {topics.map((name) => <span key={name} className="tag">{name}</span>)}
       </div>
+      {children}
     </div>
   );
 }

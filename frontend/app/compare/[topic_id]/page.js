@@ -1,4 +1,5 @@
 "use client";
+// Owner: P2
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -126,6 +127,9 @@ export default function ComparePage({ params }) {
                 </div>
                 <p className="muted">
                   {LABELS.map((label) => `${capitalize(label)} ${percent[label].toFixed(0)}%`).join(" · ")}
+                </p>
+                <p className="muted">
+                  Labels: {source.positive_articles} positive · {source.neutral_articles} neutral · {source.critical_articles} critical
                 </p>
               </section>
             );
