@@ -1,243 +1,193 @@
-# Demo command sheet (keep this open during the presentation)
+# Demo commands (keep this open while presenting)
 
-Run every command from the **project folder** (`news-perspective-explorer`)
-unless a step says `cd`. Windows: use `venv\Scripts\activate` and `copy`;
-Mac: `source venv/bin/activate` and `cp`.
-
-Demo logins: **admin@example.com / admin123** (admin),
-**reader1@example.com / reader123** (reader).
+Run everything from the project folder unless a step says `cd frontend`.
+Logins: **admin@example.com / admin123**, **reader1@example.com / reader123**.
 
 ---
 
-## 0. Fresh reset (night before, or if the data gets messy): about 2 minutes
+## 0. Fresh reset (night before, or if the data gets messy)
 
-```bash
+```powershell
 mysql -u root -p
 ```
 ```sql
-DROP DATABASE IF EXISTS news_perspective_db;
-source database/mysql/01_schema.sql;
-source database/mysql/03_views.sql;
-source database/mysql/04_procedures.sql;
-source database/mysql/05_triggers.sql;
-source database/mysql/06_seed_data.sql;
-source database/mysql/08_db_roles.sql;
-exit;
+source database/mysql/01_schema.sql
+source database/mysql/02_functions_procedures.sql
+source database/mysql/03_views.sql
+source database/mysql/04_triggers.sql
+source database/mysql/05_seed_data.sql
+source database/mysql/06_db_roles.sql
+exit
 ```
-```bash
-mongosh --eval 'db.getSiblingDB("news_perspective_db").dropDatabase()'
+```powershell
+mongosh --eval "db.getSiblingDB('news_perspective_db').dropDatabase()"
 mongosh database/mongodb/01_collections.js
 mongosh database/mongodb/02_indexes.js
-mongosh database/mongodb/03_seed.js
-
-cd backend
-venv\Scripts\activate            # Mac: source venv/bin/activate
-python seed_content.py           # article text -> MongoDB + scores every article
-cd ..
+cd frontend
+npm run seed:mongo
 ```
 
-## 1. Start the app (two terminals, leave both open)
+## 1. Start the website
 
-```bash
-# Terminal 1: backend (API on http://localhost:8000, docs at /docs)
-cd backend
-venv\Scripts\activate
-uvicorn app:app --reload --port 8000
-```
-```bash
-# Terminal 2: frontend (website on http://localhost:3000)
+```powershell
 cd frontend
 npm run dev
 ```
-
-Open two more terminals for the database demos:
-**Terminal 3** `mysql -u root -p` then `USE news_perspective_db;`
-**Terminal 4** `mongosh` then `use news_perspective_db`
+Open http://localhost:3000. (MySQL and MongoDB services must be running.)
 
 ---
 
-## 2. Website walkthrough (5 minutes)
+## 2. Website walkthrough (about 5 minutes)
 
-| # | Do this | Point out |
-|---|---|---|
-| 1 | Open http://localhost:3000 logged out, then click a topic | Guests are sent to login: backend returns 401 |
-| 2 | Log in as **reader1** | Token saved; role = reader |
-| 3 | Search **AI** | FULLTEXT search, grouped by source, labels |
-| 4 | Use the Perspective / Source filters | Filtering in the browser |
-| 5 | Open an article | Perspective panel, highlighted words, keywords, related articles |
-| 6 | Click "Compare sources on …" | View `v_source_perspective_summary`, stacked bars |
-| 7 | Click **History** | MongoDB `reading_history` |
-| 8 | Log out, log in as **admin** | Admin links appear |
-| 9 | **Add article** (pick 2 topics) | `sp_add_article` transaction, auto-scored |
-| 10 | **Terms**: change "crisis" weight to 2, Save | Trigger flags articles → re-scored |
-| 11 | **Stats** | MySQL GROUP BY + MongoDB aggregations |
-| 12 | Open the new article → **Delete article** | CASCADE in MySQL + delete_many in MongoDB |
+**As a reader** (reader1@example.com):
+
+1. Home page: topics with article counts. Click **Compare sources** on *Climate Change*:
+   the same COP28 deal is Positive at Al Jazeera, Neutral at CNBC, Critical at CBS News.
+2. Search `fossil fuels`: FULLTEXT search returns the 3 COP28 articles. Filter by perspective.
+3. Open the CBS News COP28 article:
+   - **Read the original on CBS News ↗**: real link.
+   - Perspective panel: Positive 1.2 / Neutral 0 / Critical 6.5, the matched terms highlighted.
+   - **Save**, **Follow source**, **Follow topic** buttons.
+   - **Disagree**, suggest *Neutral*: stored through `sp_set_feedback`.
+   - Post a comment. Try a comment of only spaces: rejected by a CHECK constraint.
+4. **My feed**: articles from followed topics and sources, each with the reason (`sp_user_feed`).
+5. **Saved**: the bookmarked article. **History**: articles you viewed (MongoDB).
+
+**As admin** (admin@example.com):
+
+6. **Add article**: fill the form (any real https link, a past date, a topic). Saved by
+   `sp_add_article` in one transaction; the trigger labels it immediately.
+7. **Terms**: change the weight of `failure` to 3 and save; the response says how many
+   articles were re-scored. Open the CBS COP28 article again: Critical is now 8.3.
+   Set it back to 1.2.
+8. **Stats**: totals, articles per source by label, most saved, most disputed label,
+   top searches (MongoDB).
+9. Log in as reader and open `/admin/terms`: **Access denied** (403 from the API).
 
 ---
 
-## 3. MySQL demo (terminal 3)
+## 3. MySQL demos
 
-### Structure
+```powershell
+mysql -u root -p news_perspective_db
+```
+
+**Show the structure**
 ```sql
 SHOW TABLES;
-DESCRIBE articles;
-SHOW CREATE TABLE article_topics\G
+DESCRIBE classified_as;               -- PK is (article_id, category_id)
+SHOW CREATE TABLE label_feedback\G
 SHOW TRIGGERS\G
 SHOW PROCEDURE STATUS WHERE Db = 'news_perspective_db';
-SHOW FULL TABLES WHERE Table_type = 'VIEW';
+SHOW FUNCTION STATUS  WHERE Db = 'news_perspective_db';
+SELECT @@transaction_isolation;      -- REPEATABLE-READ (InnoDB default)
+SELECT table_name, engine FROM information_schema.tables WHERE table_schema = 'news_perspective_db';
 ```
 
-### CRUD (one script: insert, select, update, delete, cascade)
+**Scoring, step by step (P2)**
 ```sql
-source database/mysql/07_crud_demo.sql;
+SELECT * FROM classified_as WHERE article_id = 6;   -- 3 stored scores; is_label = 1 is the label
+SELECT * FROM term_matches  WHERE article_id = 6;
+SELECT * FROM v_article_labels;
+SELECT fn_article_label(6), fn_count_term('A crisis. Another crisis!', 'crisis');
 ```
 
-### Constraints rejecting bad data (one at a time, each gives an error)
+**Trigger re-scoring live (P2)**
 ```sql
-DELETE FROM sources WHERE source_name = 'Reuters';                                  -- FK RESTRICT
-INSERT INTO users (name, email, password_hash) VALUES ('X', 'admin@example.com', 'x'); -- UNIQUE
-INSERT INTO perspective_terms (term, category_id, weight) VALUES ('bad', 1, -2);       -- CHECK
-INSERT INTO articles (source_id, title) VALUES (999, 'No such source');                -- FK
+SELECT critical FROM v_article_scores WHERE article_id = 6;     -- 6.50
+UPDATE perspective_terms SET weight = 3 WHERE term = 'failure';
+SELECT critical FROM v_article_scores WHERE article_id = 6;     -- 8.30
+UPDATE perspective_terms SET weight = 1.2 WHERE term = 'failure';
 ```
 
-### Triggers
+**Transaction rollback (P1)**: topic 999 does not exist, so nothing is saved.
 ```sql
--- 1. BEFORE INSERT on articles: rejects a future date
-INSERT INTO articles (source_id, title, published_at) VALUES (1, 'Future', '2099-01-01');
-
--- 2. BEFORE INSERT on users: email stored lowercase and trimmed
-INSERT INTO users (name, email, password_hash) VALUES ('  Demo ', '  DEMO@Example.COM ', 'x');
-SELECT name, email FROM users WHERE email = 'demo@example.com';
-DELETE FROM users WHERE email = 'demo@example.com';
-
--- 3. AFTER UPDATE on perspective_terms: every analysis flagged for re-scoring
-UPDATE article_perspectives SET needs_rescore = FALSE;
-UPDATE perspective_terms SET weight = 1.30 WHERE term = 'crisis';
-SELECT article_id, needs_rescore FROM article_perspectives;
-UPDATE perspective_terms SET weight = 1.20 WHERE term = 'crisis';
-
--- 4. AFTER DELETE on perspective_terms: same flagging
-INSERT INTO perspective_terms (term, category_id, weight) VALUES ('demo-term', 1, 1);
-UPDATE article_perspectives SET needs_rescore = FALSE;
-DELETE FROM perspective_terms WHERE term = 'demo-term';
-SELECT SUM(needs_rescore) AS flagged FROM article_perspectives;
-```
-(After 3 and 4, open any article on the website: `/analyze` re-scores it and
-clears the flag. Or edit a term on the Terms page, which re-scores all flagged
-articles at once.)
-
-### Stored procedures
-```sql
--- sp_add_article: success, then rollback on a bad topic id
-CALL sp_add_article(1, 'Procedure demo', NULL, NOW(), 'Demo', '1,2', @new_id);
-SELECT @new_id;
-SELECT * FROM v_article_details WHERE article_id = @new_id;
-CALL sp_add_article(1, 'Should not exist', NULL, NOW(), 'x', '1,999', @bad_id);
-SELECT COUNT(*) FROM articles WHERE title = 'Should not exist';   -- 0: rolled back
-DELETE FROM articles WHERE title = 'Procedure demo';
-
--- sp_change_user_role: validation with SIGNAL
-CALL sp_change_user_role('reader2@example.com', 'admin');
-CALL sp_change_user_role('reader2@example.com', 'reader');
-CALL sp_change_user_role('nobody@example.com', 'admin');          -- error
-CALL sp_change_user_role('reader2@example.com', 'owner');         -- error
-
--- sp_topic_perspective_summary: OUT parameters
-CALL sp_topic_perspective_summary(2, @pos, @neu, @crit);
-SELECT @pos AS positive, @neu AS neutral, @crit AS critical;
+CALL sp_add_article(1, 'Rollback test', 'https://example.org/rollback', NOW(),
+                    NULL, 'Some text', '1,999', @id);
+-- ERROR 1644: Every topic_id must exist
+SELECT COUNT(*) FROM articles WHERE url = 'https://example.org/rollback';   -- 0
 ```
 
-### Views
+**Procedures with OUT parameters**
 ```sql
-SELECT * FROM v_article_details;
-SELECT * FROM v_source_perspective_summary WHERE topic_name = 'Elections';
+CALL sp_topic_perspective_summary(2, @p, @n, @c);
+SELECT @p AS positive, @n AS neutral, @c AS critical;
+CALL sp_user_feed(2);
 ```
 
-### Database roles: GRANT / REVOKE
+**CRUD, ALTER/DROP, viva queries**
 ```sql
-SHOW GRANTS FOR 'npe_app'@'localhost' USING 'npe_app_role';
-SHOW GRANTS FOR 'npe_viewer'@'localhost' USING 'npe_readonly_role';
-```
-In a new terminal: `mysql -u npe_viewer -p` (password `viewer123`)
-```sql
-SELECT COUNT(*) FROM news_perspective_db.articles;   -- works
-DELETE FROM news_perspective_db.articles;            -- ERROR 1142: command denied
-```
-Back as root:
-```sql
-REVOKE DELETE ON news_perspective_db.* FROM 'npe_app_role';
-SHOW GRANTS FOR 'npe_app'@'localhost' USING 'npe_app_role';   -- DELETE gone
--- now "Delete article" on the website fails: the app really runs as npe_app
-GRANT DELETE ON news_perspective_db.* TO 'npe_app_role';
+source database/mysql/07_crud_demo.sql
+source database/mysql/08_alter_drop_demo.sql
+source database/mysql/queries.sql
 ```
 
-### Viva queries (6 per person) and ALTER / DROP
+**Constraints** (each one is rejected)
 ```sql
-source database/mysql/queries.sql;
-source database/mysql/02_alter_drop_demo.sql;
+DELETE FROM sources WHERE source_name = 'CNBC';                                         -- FK RESTRICT
+INSERT INTO users (name, email, password_hash) VALUES ('X', 'ADMIN@example.com', 'x');  -- UNIQUE (trigger lower-cases)
+INSERT INTO perspective_terms (term, category_id, weight) VALUES ('bad', 1, 0);         -- CHECK weight
+INSERT INTO perspective_terms (term, category_id, weight) VALUES ('Bad Word!', 1, 1);   -- CHECK REGEXP
+INSERT INTO classified_as (article_id, category_id, score) VALUES (1, 1, 5);            -- duplicate composite PK
+INSERT INTO label_feedback (user_id, article_id, vote, suggested_label) VALUES (2, 1, 'agree', 'Positive');  -- CHECK
+INSERT INTO articles (source_id, title, url, published_at, content)
+VALUES (1, 'x', 'https://x.org', '2099-01-01', 'x');                                    -- trigger: future date
 ```
 
-### Prove the website writes to MySQL
-Register a new user on the website, then:
+**Database roles**
 ```sql
-SELECT user_id, name, email, role, created_at FROM users ORDER BY user_id DESC LIMIT 1;
+SHOW GRANTS FOR 'npe_admin'@'localhost'  USING 'admin_role';
+SHOW GRANTS FOR 'npe_reader'@'localhost' USING 'reader_role';
+exit
+```
+```powershell
+mysql -u npe_reader -preader_pass123 news_perspective_db
+```
+```sql
+SELECT COUNT(*) FROM articles;                 -- works
+DELETE FROM articles WHERE article_id = 1;     -- ERROR 1142: reader cannot delete articles
+UPDATE classified_as SET score = 99;           -- ERROR 1142: reader cannot change scores
+exit
+```
+```powershell
+mysql -u npe_admin -padmin_pass123 news_perspective_db
+```
+```sql
+DELETE FROM comments WHERE comment_id = 1;     -- works
+DROP TABLE comments;                           -- ERROR 1142: only root changes the schema
+```
+The website uses the same roles: an admin's requests run as `npe_admin`, a reader's as
+`npe_reader`. As root, `REVOKE DELETE ON news_perspective_db.bookmarks FROM 'reader_role';`
+then "Remove bookmark" on the site fails with "Database permission denied"; GRANT it back.
+
+---
+
+## 4. MongoDB demos
+
+```powershell
+mongosh news_perspective_db
+```
+```js
+show collections
+db.getCollectionInfos({ name: "reading_history" })[0].options.validator   // $jsonSchema
+db.article_metadata.getIndexes()
+db.article_metadata.findOne({ article_id: 6 })
+db.reading_history.find().sort({ timestamp: -1 }).limit(5)
+db.search_logs.find().sort({ timestamp: -1 }).limit(5)
+```
+```powershell
+mongosh database/mongodb/03_crud_demo.js
+mongosh database/mongodb/aggregations.js
 ```
 
 ---
 
-## 4. MongoDB demo (terminal 4, inside `mongosh`)
+## 5. If something breaks
 
-### Structure
-```js
-use news_perspective_db
-show collections
-db.getCollectionInfos({ name: "reading_history" })[0].options.validator
-db.reading_history.getIndexes()
-```
-
-### CRUD (one script). Run it from a normal terminal in the project folder:
-```bash
-mongosh database/mongodb/04_crud_demo.js
-```
-Or type the operations live:
-```js
-// CREATE
-db.reading_history.insertOne({ user_id: NumberInt(2), article_id: NumberInt(1), event_type: "demo", timestamp: new Date() })
-// READ
-db.reading_history.find({ event_type: "demo" })
-db.article_content.findOne({ article_id: 1 })
-// UPDATE
-db.reading_history.updateOne({ event_type: "demo" }, { $set: { article_id: NumberInt(2) } })
-// DELETE
-db.reading_history.deleteMany({ event_type: "demo" })
-// VALIDATION: rejected because user_id and timestamp are missing
-db.reading_history.insertOne({ article_id: NumberInt(1), event_type: "demo" })
-```
-
-### Aggregations (from `database/mongodb/aggregations.js`)
-```js
-// Most common keywords ($unwind splits the array)
-db.article_metadata.aggregate([{ $unwind: "$keywords" }, { $group: { _id: "$keywords", articles: { $sum: 1 } } }, { $sort: { articles: -1 } }, { $limit: 5 }])
-
-// Articles per label
-db.perspective_analysis.aggregate([{ $group: { _id: "$label", articles: { $sum: 1 } } }])
-
-// Most popular searches
-db.search_logs.aggregate([{ $group: { _id: { $toLower: "$query" }, times: { $sum: 1 } } }, { $sort: { times: -1 } }])
-
-// Most compared topics and unique users
-db.comparison_sessions.aggregate([{ $group: { _id: "$topic_id", comparisons: { $sum: 1 }, users: { $addToSet: "$user_id" } } }, { $project: { comparisons: 1, unique_users: { $size: "$users" } } }])
-
-// Index in use: look for IXSCAN in the winning plan
-db.reading_history.find({ user_id: 2 }).sort({ timestamp: -1 }).explain().queryPlanner.winningPlan
-```
-
-### Prove the website writes to MongoDB
-Search for something on the website, then:
-```js
-db.search_logs.find().sort({ timestamp: -1 }).limit(1)
-```
-Open an article, then:
-```js
-db.reading_history.find().sort({ timestamp: -1 }).limit(1)
-```
+| Problem | Fix |
+|---|---|
+| Website shows "MongoDB is not available" | start the MongoDB service; MySQL pages still work |
+| `Access denied for user 'npe_admin'` / `'npe_reader'` | run `06_db_roles.sql` again as root |
+| Article page has no scores | `CALL sp_score_article(<id>);` |
+| Login fails for demo users | re-run `05_seed_data.sql` (after 01 to 04) |
+| Port 3000 busy | `npm run dev -- -p 3001` |
