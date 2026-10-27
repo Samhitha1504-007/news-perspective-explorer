@@ -1,74 +1,112 @@
 # News Perspective Explorer
 
-DBMS project: search a news topic, read articles from several sources, see a
-rule-based Positive / Neutral / Critical perspective indicator, and compare how
-sources frame the same event.
+DBMS Level 3 project. Readers search a news event, read how different outlets
+covered it, and see a rule-based **Positive / Neutral / Critical** label for each
+article (scores and label are computed by SQL and stored in `classified_as`). They can save articles, follow topics and sources, comment, and agree or
+disagree with a label. Admins add articles, edit the scoring terms and see statistics.
 
-**Stack:** Next.js (frontend) · FastAPI (backend) · MySQL + MongoDB (`news_perspective_db`)
+**Stack:** MySQL 8 (main data and all scoring logic) · MongoDB (keywords and activity
+logs) · Next.js 14 (pages and API routes). There is no Python and no separate backend:
+the classification is done entirely in SQL (functions, procedures, triggers), and the
+API is Next.js route handlers in `frontend/app/api`.
 
-## Layout and ownership
+All 15 seed articles are real published articles (real title, date and link). The
+`content` column holds a short summary we wrote ourselves, and that is the text SQL scores.
 
-| Path | P1: Search, Article & Data | P2: Perspective, Comparison & History |
-|---|---|---|
-| MySQL tables | `users`, `topics`, `articles`, `article_topics` | `sources`, `perspective_categories`, `perspective_terms`, `article_perspectives` |
-| MongoDB | `article_content`, `article_metadata`, `search_logs` | `perspective_analysis`, `reading_history`, `comparison_sessions` |
-| Advanced SQL | FULLTEXT search, `sp_add_article` (`04_procedures.sql`) | `v_source_perspective_summary` (`03_views.sql`), trigger (`05_triggers.sql`) |
-| `backend/routes/` | `auth`, `topics`, `search`, `articles`, `admin_articles` | `sources`, `perspective`, `compare`, `history`, `admin_terms` |
-| `backend/services/` | `auth_service`, `keyword_service`, `article_service` | `scoring_service`, `compare_service`, `history_service` |
-| `frontend/` | `app/`: `/`, `login`, `register`, `search`, `articles/[article_id]`, `admin/articles`; `components/`: `NavBar`, `SearchBar`, `ArticleCard` | perspective panel on article page, `compare/[topic_id]`, `history`, `admin/terms` |
+## Documents
 
-`database/mysql/01_schema.sql` and `database/mongodb/01_collections.js` are the
-shared contract. Change a name there only after you've both agreed.
+- [docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md): ER diagram, relational schema, MongoDB model, mapping rules
+- [docs/DEMO_COMMANDS.md](docs/DEMO_COMMANDS.md): every command for the demo, in order
+- [docs/PRESENTATION_GUIDE.md](docs/PRESENTATION_GUIDE.md): how it works, who did what, viva questions
 
-## Naming rules
+## Folder layout
 
-- snake_case for tables, columns, collections, JSON keys and API fields.
-- `article_id`, `topic_id` and `user_id` everywhere. Never use `news_id` or Mongo `_id` in API payloads.
-- MongoDB references hold the same INT values as MySQL ids.
-- Dates in API JSON are ISO 8601.
-
-## Setup
-
-```bash
-# MySQL (run in order)
-mysql -u root -p < database/mysql/01_schema.sql
-mysql -u root -p < database/mysql/03_views.sql
-mysql -u root -p < database/mysql/04_procedures.sql
-mysql -u root -p < database/mysql/05_triggers.sql
-mysql -u root -p < database/mysql/06_seed_data.sql
-
-# MongoDB
-mongosh database/mongodb/01_collections.js
-mongosh database/mongodb/02_indexes.js
-mongosh database/mongodb/03_seed.js
-
-# Backend
-cd backend
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env   # fill in credentials
-python seed_content.py # article text -> MongoDB, then scores every article
-uvicorn app:app --reload --port 8000
-
-# Frontend
-cd frontend
-npm install
-cp .env.example .env.local
-npm run dev
+```
+database/mysql/
+  01_schema.sql               14 tables: 7 entity tables + 7 relationship tables
+  02_functions_procedures.sql 3 functions, 8 procedures (scoring engine, transaction, feed)
+  03_views.sql                5 views (derived label, score pivot, comparison, feedback)
+  04_triggers.sql             11 triggers (validation + automatic re-scoring)
+  05_seed_data.sql            categories, terms, sources, topics, users, 15 real articles
+  06_db_roles.sql             MySQL roles admin_role / reader_role + their accounts
+  07_crud_demo.sql            CRUD demo (safe to re-run)
+  08_alter_drop_demo.sql      ALTER / DROP demo (leaves the schema unchanged)
+  queries.sql                 6 viva queries per person
+database/mongodb/
+  01_collections.js           4 collections with $jsonSchema validators
+  02_indexes.js               unique, multikey and compound indexes
+  03_crud_demo.js             CRUD demo
+  aggregations.js             3 aggregation queries per person
+frontend/
+  app/api/**/route.js         27 API routes (server side, talk to MySQL and MongoDB)
+  app/**/page.js              pages
+  components/                 shared React components
+  lib/server/                 db.js (MySQL pool), mongo.js, auth.js (JWT), keywords.js
+  lib/api.js                  browser-side calls to /api
+  scripts/seed-mongo.mjs      fills MongoDB from the MySQL articles
 ```
 
-Demo logins (from `06_seed_data.sql`):
+## Setup (Windows PowerShell)
+
+Needs MySQL 8, MongoDB 6+ (with `mongosh`) and Node.js 20.6 or newer.
+
+```powershell
+# 1. MySQL: open the client from the repo folder, then source the files in order
+mysql -u root -p
+```
+```sql
+source database/mysql/01_schema.sql
+source database/mysql/02_functions_procedures.sql
+source database/mysql/03_views.sql
+source database/mysql/04_triggers.sql
+source database/mysql/05_seed_data.sql
+source database/mysql/06_db_roles.sql
+exit
+```
+```powershell
+# 2. MongoDB
+mongosh database/mongodb/01_collections.js
+mongosh database/mongodb/02_indexes.js
+
+# 3. Website
+cd frontend
+npm install
+copy .env.example .env.local
+npm run seed:mongo        # keywords for every article + some demo activity
+npm run dev               # http://localhost:3000
+```
+
+Re-running `01_schema.sql` drops and rebuilds the database, so run 02 to 06 again after it.
+
+Demo logins:
 
 | Email | Password | Role |
 |---|---|---|
 | admin@example.com | admin123 | admin |
 | reader1@example.com | reader123 | reader |
+| reader2@example.com | reader123 | reader |
 
-API docs with a "try it" button: http://localhost:8000/docs (click **Authorize** and paste a token from `/login` to call admin routes).
+## Who owns what
 
-## Branches
+Every file in `frontend/` starts with an `// Owner:` comment, and every SQL object has a
+`-- P1` / `-- P2` comment above it.
 
-- `main`: always working.
-- `person1-search`: P1's branch. `person2-comparison`: P2's branch.
-- `integration`: create once the first APIs work.
-- Commit from your own account only. Never commit `.env`.
+| | P1 (Samhitha): articles, search and reader features | P2 (Samika): perspective scoring, comparison and analytics |
+|---|---|---|
+| Entity tables | `users`, `topics`, `articles`, `comments` | `sources`, `perspective_categories`, `perspective_terms` |
+| Relationship tables | `article_topics`, `bookmarks`, `topic_follows`, `source_follows` | `classified_as`, `term_matches`, `label_feedback` |
+| Functions / procedures | `sp_add_article` (transaction), `sp_change_user_role`, `sp_user_feed` | `fn_count_term`, `fn_article_label`, `fn_agreement_pct`, `sp_compute_scores`, `sp_refresh_labels`, `sp_score_article`, `sp_match_term`, `sp_topic_perspective_summary`, `sp_set_feedback` |
+| Views | `v_article_details` | `v_article_labels`, `v_article_scores`, `v_source_perspective_summary`, `v_article_feedback` |
+| Triggers | 4 validation triggers (articles, users, comments) | 7 scoring triggers (articles, perspective_terms) |
+| Other SQL | FULLTEXT search, P1 queries, P1 part of ALTER/DROP | `06_db_roles.sql`, P2 queries, P2 part of ALTER/DROP |
+| MongoDB | `article_metadata`, `search_logs` | `reading_history`, `comparison_sessions` |
+| API | login, register, topics, sources, search, articles, related, comments, bookmarks, follows, feed, admin/articles | analyze, compare, perspectives, keywords, history, feedback, admin/terms, admin/stats |
+| Pages | home, login, register, search, article page, feed, saved, admin add-article | compare, history, admin terms, admin stats, perspective panel + feedback box |
+
+## Rules we follow
+
+- snake_case everywhere; `article_id`, `topic_id`, `user_id` mean the same thing in MySQL, MongoDB and the API.
+- Database credentials live only in `frontend/.env.local`, which is git-ignored. Never commit it.
+- RBAC: the website and MySQL use the same two roles. An admin's requests run as MySQL
+  account `npe_admin` (`admin_role`), a reader's as `npe_reader` (`reader_role`), never root.
+- Each person commits their own files from their own GitHub account.
