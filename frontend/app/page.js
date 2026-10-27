@@ -1,5 +1,5 @@
 "use client";
-// Owner: P1 (Home / Search)
+// Owner: P1
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import SearchBar from "@/components/SearchBar";
@@ -26,7 +26,7 @@ export default function HomePage() {
       {!loggedIn && (
         <p className="panel">
           <Link href="/login">Log in</Link> or <Link href="/register">create an account</Link> to
-          search, read articles and compare sources.
+          search, read articles, compare sources, save articles, follow topics and comment.
         </p>
       )}
       <SearchBar />
@@ -40,6 +40,7 @@ export default function HomePage() {
               <Link href={`/search?query=${encodeURIComponent(topic.topic_name)}`}>{topic.topic_name}</Link>
             </h3>
             <p className="muted">{topic.description}</p>
+            <p className="muted">{topic.article_count} article(s) · {topic.followers} follower(s)</p>
             <Link href={`/compare/${topic.topic_id}`}>Compare sources →</Link>
           </div>
         ))}

@@ -23,6 +23,8 @@ export default function NavBar() {
       <span className="spacer" />
       {session ? (
         <>
+          <Link href="/feed">My feed</Link>
+          <Link href="/bookmarks">Saved</Link>
           <Link href="/history">History</Link>
           {session.role === "admin" && (
             <>
