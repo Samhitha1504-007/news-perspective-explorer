@@ -215,3 +215,20 @@ td input, td select { padding: 6px 8px; }
   .stats { grid-template-columns: 1fr; }
   .two-columns { grid-template-columns: 1fr; gap: 0; }
 }
+
+/* ---------- Reader features ---------- */
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 14px 0; }
+button.toggle {
+  background: transparent; color: var(--ink); border: 1px solid var(--rule);
+  padding: 6px 12px; font-size: 14px;
+}
+button.toggle:hover { border-color: var(--accent); color: var(--accent); background: transparent; }
+button.toggle.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+button.toggle.on:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.link { background: none; border: none; padding: 0; color: var(--accent); font-size: 13px; }
+button.link:hover { background: none; text-decoration: underline; }
+.comment { border-bottom: 1px solid var(--rule); padding: 12px 0; }
+.comment:last-child { border-bottom: none; }
+.comment p { margin: 4px 0 0; }
+.reason { font-size: 12px; color: var(--accent); }
+.feedback-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
