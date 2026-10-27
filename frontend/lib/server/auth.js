@@ -6,8 +6,11 @@
 // 3. The browser sends it back on every request: Authorization: Bearer <token>
 // 4. requireUser() / requireAdmin() verify it here, in the API, so hiding a
 //    button in the UI is never what protects data.
+// 5. route() also runs the request on the MySQL account of the same role
+//    (npe_admin / npe_reader), so the database enforces the role as well.
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
+import { runAsRole } from "./db";
 
 const SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 
@@ -72,11 +75,22 @@ function toResponse(err) {
   }
 }
 
-// Wrap every route handler: run it and convert any error to JSON.
+// Website role -> MySQL role. A bad token falls back to reader; the
+// handler's requireUser() then answers 401.
+function dbRole(request) {
+  try {
+    return getUser(request)?.role === "admin" ? "admin" : "reader";
+  } catch {
+    return "reader";
+  }
+}
+
+// Wrap every route handler: run it on the MySQL role of the logged-in
+// user and convert any error to JSON.
 export function route(handler) {
   return async (request, context) => {
     try {
-      return await handler(request, context);
+      return await runAsRole(dbRole(request), () => handler(request, context));
     } catch (err) {
       return toResponse(err);
     }

@@ -2,7 +2,7 @@
 
 DBMS Level 3 project. Readers search a news event, read how different outlets
 covered it, and see a rule-based **Positive / Neutral / Critical** label for each
-article. They can save articles, follow topics and sources, comment, and agree or
+article (scores and label are computed by SQL and stored in `classified_as`). They can save articles, follow topics and sources, comment, and agree or
 disagree with a label. Admins add articles, edit the scoring terms and see statistics.
 
 **Stack:** MySQL 8 (main data and all scoring logic) · MongoDB (keywords and activity
@@ -28,7 +28,7 @@ database/mysql/
   03_views.sql                5 views (derived label, score pivot, comparison, feedback)
   04_triggers.sql             11 triggers (validation + automatic re-scoring)
   05_seed_data.sql            categories, terms, sources, topics, users, 15 real articles
-  06_db_roles.sql             MySQL roles + the npe_app account the website uses
+  06_db_roles.sql             MySQL roles admin_role / reader_role + their accounts
   07_crud_demo.sql            CRUD demo (safe to re-run)
   08_alter_drop_demo.sql      ALTER / DROP demo (leaves the schema unchanged)
   queries.sql                 6 viva queries per person
@@ -95,7 +95,7 @@ Every file in `frontend/` starts with an `// Owner:` comment, and every SQL obje
 |---|---|---|
 | Entity tables | `users`, `topics`, `articles`, `comments` | `sources`, `perspective_categories`, `perspective_terms` |
 | Relationship tables | `article_topics`, `bookmarks`, `topic_follows`, `source_follows` | `classified_as`, `term_matches`, `label_feedback` |
-| Functions / procedures | `sp_add_article` (transaction), `sp_change_user_role`, `sp_user_feed` | `fn_count_term`, `fn_article_label`, `fn_agreement_pct`, `sp_compute_scores`, `sp_score_article`, `sp_match_term`, `sp_topic_perspective_summary`, `sp_set_feedback` |
+| Functions / procedures | `sp_add_article` (transaction), `sp_change_user_role`, `sp_user_feed` | `fn_count_term`, `fn_article_label`, `fn_agreement_pct`, `sp_compute_scores`, `sp_refresh_labels`, `sp_score_article`, `sp_match_term`, `sp_topic_perspective_summary`, `sp_set_feedback` |
 | Views | `v_article_details` | `v_article_labels`, `v_article_scores`, `v_source_perspective_summary`, `v_article_feedback` |
 | Triggers | 4 validation triggers (articles, users, comments) | 7 scoring triggers (articles, perspective_terms) |
 | Other SQL | FULLTEXT search, P1 queries, P1 part of ALTER/DROP | `06_db_roles.sql`, P2 queries, P2 part of ALTER/DROP |
@@ -107,5 +107,6 @@ Every file in `frontend/` starts with an `// Owner:` comment, and every SQL obje
 
 - snake_case everywhere; `article_id`, `topic_id`, `user_id` mean the same thing in MySQL, MongoDB and the API.
 - Database credentials live only in `frontend/.env.local`, which is git-ignored. Never commit it.
-- The website connects to MySQL as `npe_app` (no DROP/ALTER rights), not root.
+- RBAC: the website and MySQL use the same two roles. An admin's requests run as MySQL
+  account `npe_admin` (`admin_role`), a reader's as `npe_reader` (`reader_role`), never root.
 - Each person commits their own files from their own GitHub account.
