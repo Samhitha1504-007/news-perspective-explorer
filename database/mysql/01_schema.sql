@@ -122,13 +122,15 @@ CREATE TABLE term_matches (
     CONSTRAINT fk_tm_term    FOREIGN KEY (term_id)    REFERENCES perspective_terms(term_id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- P2 : CLASSIFIED_AS  (ARTICLE M : N PERSPECTIVE_CATEGORY), attribute score.
--- Every scored article has exactly one row per category. The label is NOT
--- stored: it is derived (highest score) by fn_article_label / v_article_labels.
+-- P2 : CLASSIFIED_AS  (ARTICLE M : N PERSPECTIVE_CATEGORY), attributes
+-- score and is_label. Every scored article has one row per category, so its
+-- three scores are stored here. is_label = TRUE on the winning category: the
+-- article's perspective label is stored too (kept up to date by sp_refresh_labels).
 CREATE TABLE classified_as (
     article_id   INT NOT NULL,
     category_id  INT NOT NULL,
     score        DECIMAL(8,2) NOT NULL DEFAULT 0,
+    is_label     BOOLEAN NOT NULL DEFAULT FALSE,
     scored_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (article_id, category_id),
     CONSTRAINT chk_ca_score CHECK (score >= 0),
