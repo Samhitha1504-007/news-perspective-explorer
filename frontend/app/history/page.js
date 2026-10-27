@@ -1,4 +1,5 @@
 "use client";
+// Owner: P2
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -47,8 +48,9 @@ export default function HistoryPage() {
   return (
     <main>
       <p><Link href="/">← Home</Link></p>
+      <p className="kicker">Your activity</p>
       <h1>Reading history</h1>
-      <p>Articles you have interacted with, newest first.</p>
+      <p className="lede">Articles you have opened, newest first.</p>
 
       {loading && <p>Loading your history...</p>}
 
@@ -69,26 +71,22 @@ export default function HistoryPage() {
 
       {!loading && !error && history.length > 0 && (
         <>
-          <p>{history.length} recent event(s)</p>
-          <div style={{ display: "grid", gap: 12 }}>
+          <h2 className="section-title">{history.length} recent event(s)</h2>
+          <div>
             {history.map((item, index) => (
               <article
                 key={`${item.article_id}-${item.timestamp}-${index}`}
-                style={{
-                  border: "1px solid #ddd",
-                  borderRadius: 10,
-                  padding: 16,
-                }}
+                className="card"
               >
-                <h2 style={{ marginTop: 0 }}>
+                <h3>
                   <Link href={`/articles/${item.article_id}`}>
                     {item.title || "Article unavailable"}
                   </Link>
-                </h2>
-                <p>Activity: {item.event_type}</p>
-                <p>
+                </h3>
+                <p className="muted">
+                  <span className="tag">{item.event_type}</span>{" "}
                   {item.timestamp
-                    ? new Date(item.timestamp).toLocaleString()
+                    ? new Date(item.timestamp).toLocaleString("en-GB")
                     : "Time unavailable"}
                 </p>
               </article>

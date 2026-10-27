@@ -1,14 +1,26 @@
 "use client";
+// Owner: P2
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { compare, getPerspectives } from "@/lib/api";
 
-const COLORS = {
-  positive: "#16a34a",
-  neutral: "#64748b",
-  critical: "#dc2626",
-};
+const LABELS = ["positive", "neutral", "critical"];
+
+// The view returns score totals per source (e.g. positive 2.5, neutral 6.0).
+// Turn them into shares of 100% so sources can be compared fairly.
+function toPercentages(source) {
+  const total = LABELS.reduce((sum, label) => sum + Number(source[label] ?? 0), 0);
+  const result = {};
+  for (const label of LABELS) {
+    result[label] = total > 0 ? (Number(source[label] ?? 0) / total) * 100 : 0;
+  }
+  return result;
+}
+
+function capitalize(word) {
+  return word[0].toUpperCase() + word.slice(1);
+}
 
 export default function ComparePage({ params }) {
   const topicId = params.topic_id;
@@ -60,63 +72,68 @@ export default function ComparePage({ params }) {
   }
 
   const sources = data?.sources || [];
-  const labels = ["positive", "neutral", "critical"];
 
   return (
     <main>
       <p><Link href="/">← All topics</Link></p>
-      <h1>Source comparison: {data?.topic || `Topic ${topicId}`}</h1>
-      <p>Compare how the available news sources cover this topic.</p>
+      <p className="kicker">Source comparison</p>
+      <h1>{data?.topic || `Topic ${topicId}`}</h1>
+      <p className="lede">How each news source frames this topic.</p>
 
       {distribution && (
-        <section style={{ margin: "24px 0" }}>
-          <h2>Overall perspective distribution</h2>
-          <p>Articles analysed: {distribution.total_articles ?? 0}</p>
-
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", margin: "12px 0" }}>
-            {labels.map((label) => (
-              <div key={label} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, minWidth: 120 }}>
-                <strong style={{ color: COLORS[label] }}>
-                  {label[0].toUpperCase() + label.slice(1)}
-                </strong>
-                <div style={{ fontSize: 24 }}>
-                  {distribution.distribution?.[label] ?? 0}
-                </div>
+        <>
+          <h2 className="section-title">
+            All articles on this topic · {distribution.total_articles ?? 0} analysed
+          </h2>
+          <div className="stats">
+            {LABELS.map((label) => (
+              <div key={label} className={`stat stat-${label}`}>
+                <div className="muted">{capitalize(label)}</div>
+                <div className="number">{distribution.distribution?.[label] ?? 0}</div>
+                <div className="muted">articles</div>
               </div>
             ))}
           </div>
-        </section>
+        </>
       )}
 
-      <h2>Compare by source</h2>
+      <h2 className="section-title">By source</h2>
+      <div className="legend">
+        {LABELS.map((label) => (
+          <span key={label}>
+            <span className={`dot bar-${label}`} />
+            {capitalize(label)}
+          </span>
+        ))}
+      </div>
 
       {sources.length === 0 ? (
         <p>No source comparison data is available for this topic yet.</p>
       ) : (
-        <div style={{ display: "grid", gap: 18 }}>
-          {sources.map((source) => (
-            <section key={source.source_id} style={{ border: "1px solid #ddd", borderRadius: 10, padding: 16 }}>
-              <h3>{source.source_name}</h3>
-              <p>Articles: {source.article_count ?? 0}</p>
-
-              {labels.map((label) => {
-                const value = Number(source[label] ?? 0);
-                const width = Math.max(0, Math.min(100, value));
-
-                return (
-                  <div key={label} style={{ margin: "14px 0" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 5 }}>
-                      <span>{label[0].toUpperCase() + label.slice(1)}</span>
-                      <strong>{value.toFixed(1)}%</strong>
-                    </div>
-                    <div style={{ background: "#e5e7eb", borderRadius: 8, height: 10, overflow: "hidden" }}>
-                      <div style={{ background: COLORS[label], width: `${width}%`, height: "100%" }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </section>
-          ))}
+        <div style={{ marginTop: 16 }}>
+          {sources.map((source) => {
+            const percent = toPercentages(source);
+            return (
+              <section key={source.source_id} className="card">
+                <h3>{source.source_name}</h3>
+                <p className="muted">
+                  {source.article_count ?? 0} article(s)
+                </p>
+                {/* One bar, three parts: each part's width is its share of the total score */}
+                <div className="bar">
+                  {LABELS.map((label) => (
+                    <div key={label} className={`bar-${label}`} style={{ width: `${percent[label]}%` }} />
+                  ))}
+                </div>
+                <p className="muted">
+                  {LABELS.map((label) => `${capitalize(label)} ${percent[label].toFixed(0)}%`).join(" · ")}
+                </p>
+                <p className="muted">
+                  Labels: {source.positive_articles} positive · {source.neutral_articles} neutral · {source.critical_articles} critical
+                </p>
+              </section>
+            );
+          })}
         </div>
       )}
     </main>

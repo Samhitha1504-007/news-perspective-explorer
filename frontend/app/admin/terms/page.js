@@ -1,3 +1,4 @@
+// Owner: P2
 
 
 "use client";
@@ -5,6 +6,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   createTerm,
+  deleteTerm,
   getAdminTerms,
   getSession,
   updateTerm,
@@ -141,6 +143,19 @@ export default function AdminTermsPage() {
     }
   }
 
+  async function removeTerm(term) {
+    if (!window.confirm(`Delete "${term.term}"? Articles will be re-scored without it.`)) return;
+    setError("");
+    setMessage("");
+    try {
+      const result = await deleteTerm(term.term_id);
+      setMessage(`"${term.term}" deleted. ${result.rescored_count} article(s) re-scored.`);
+      await loadTerms();
+    } catch (err) {
+      setError(err.message || "Could not delete this term.");
+    }
+  }
+
   async function saveTerm(term) {
     const edit = edits[term.term_id] || {};
     const body = {};
@@ -213,9 +228,10 @@ export default function AdminTermsPage() {
 
   return (
     <main>
-      <h1>Admin: Perspective Terms</h1>
+      <p className="kicker">Admin</p>
+      <h1>Perspective terms</h1>
 
-      <p className="muted">
+      <p className="lede">
         Manage the terms used to classify articles as Positive, Neutral, or
         Critical. Saving a change may trigger article re-scoring.
       </p>
@@ -234,15 +250,7 @@ export default function AdminTermsPage() {
         </button>
       ) : (
         <>
-          <section
-            style={{
-              margin: "24px 0",
-              padding: "20px",
-              border: "1px solid #d1d5db",
-              borderRadius: "10px",
-              maxWidth: "650px",
-            }}
-          >
+          <section className="panel" style={{ maxWidth: 650 }}>
             <h2>Add New Perspective Term</h2>
 
             <p className="muted">
@@ -308,7 +316,7 @@ export default function AdminTermsPage() {
                   id="new-weight"
                   type="number"
                   min="0.01"
-                  step="0.1"
+                  step="0.01"
                   required
                   value={form.weight}
                   onChange={(event) =>
@@ -324,12 +332,12 @@ export default function AdminTermsPage() {
             </form>
           </section>
 
-          <h2>Existing Perspective Terms</h2>
+          <h2 className="section-title">Existing perspective terms</h2>
 
           {terms.length === 0 ? (
             <p>No perspective terms were found.</p>
           ) : (
-            <div style={{ overflowX: "auto" }}>
+            <div className="table-wrap">
               <table>
                 <thead>
                   <tr>
@@ -392,7 +400,7 @@ export default function AdminTermsPage() {
                             aria-label={`Weight for ${term.term}`}
                             type="number"
                             min="0.01"
-                            step="0.1"
+                            step="0.01"
                             value={edit.weight ?? term.weight}
                             onChange={(event) =>
                               changeField(
@@ -415,6 +423,13 @@ export default function AdminTermsPage() {
                             {savingId === term.term_id
                               ? "Saving..."
                               : "Save"}
+                          </button>{" "}
+                          <button
+                            className="secondary"
+                            onClick={() => removeTerm(term)}
+                            disabled={savingId !== null || creating}
+                          >
+                            Delete
                           </button>
                         </td>
                       </tr>
