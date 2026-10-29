@@ -26,7 +26,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE, EXECUTE ON news_perspective_db.* TO 'admin
 GRANT SELECT ON news_perspective_db.* TO 'reader_role';
 -- ... registers, and changes only their own activity rows.
 GRANT INSERT                 ON news_perspective_db.users          TO 'reader_role';
-GRANT INSERT, DELETE         ON news_perspective_db.comments       TO 'reader_role';
+GRANT INSERT                 ON news_perspective_db.comments       TO 'reader_role';
 GRANT INSERT, UPDATE, DELETE ON news_perspective_db.bookmarks      TO 'reader_role';
 GRANT INSERT, UPDATE, DELETE ON news_perspective_db.topic_follows  TO 'reader_role';
 GRANT INSERT, UPDATE, DELETE ON news_perspective_db.source_follows TO 'reader_role';
@@ -36,6 +36,8 @@ GRANT EXECUTE ON PROCEDURE news_perspective_db.sp_user_feed                 TO '
 GRANT EXECUTE ON PROCEDURE news_perspective_db.sp_set_feedback              TO 'reader_role';
 GRANT EXECUTE ON PROCEDURE news_perspective_db.sp_topic_perspective_summary TO 'reader_role';
 GRANT EXECUTE ON PROCEDURE news_perspective_db.sp_score_article             TO 'reader_role';
+-- Deleting a comment only through sp_delete_comment (author or admin only).
+GRANT EXECUTE ON PROCEDURE news_perspective_db.sp_delete_comment            TO 'reader_role';
 GRANT EXECUTE ON FUNCTION  news_perspective_db.fn_article_label             TO 'reader_role';
 GRANT EXECUTE ON FUNCTION  news_perspective_db.fn_agreement_pct             TO 'reader_role';
 -- A reader can NOT: add/delete articles, edit perspective_terms, change
@@ -58,6 +60,8 @@ SHOW GRANTS FOR 'npe_reader'@'localhost' USING 'reader_role';
 --   SELECT title FROM articles LIMIT 3;                         -- works
 --   CALL sp_user_feed(2);                                       -- works
 --   DELETE FROM articles WHERE article_id = 1;                  -- ERROR 1142: command denied
+--   DELETE FROM comments WHERE comment_id = 1;                  -- ERROR 1142: use sp_delete_comment
+--   CALL sp_delete_comment(1, 3);   -- ERROR 'You can only delete your own comments' (not the author)
 --   UPDATE classified_as SET score = 99;                        -- ERROR 1142
 --   CALL sp_add_article(1,'x','https://x.org',NOW(),NULL,'x','1',@id);  -- ERROR 1370: execute denied
 --

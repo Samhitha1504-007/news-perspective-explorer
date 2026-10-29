@@ -3,7 +3,8 @@
 DBMS Level 3 project. Readers search a news event, read how different outlets
 covered it, and see a rule-based **Positive / Neutral / Critical** label for each
 article (scores and label are computed by SQL and stored in `classified_as`). They can save articles, follow topics and sources, comment, and agree or
-disagree with a label. Admins add articles, edit the scoring terms and see statistics.
+disagree with a label. Admins add articles, edit the scoring terms, see statistics, manage the MongoDB search
+logs (create / read / update / delete) and run the stored procedures and functions from the UI.
 
 **Stack:** MySQL 8 (main data and all scoring logic) · MongoDB (keywords and activity
 logs) · Next.js 14 (pages and API routes). There is no Python and no separate backend:
@@ -38,7 +39,7 @@ database/mongodb/
   03_crud_demo.js             CRUD demo
   aggregations.js             3 aggregation queries per person
 frontend/
-  app/api/**/route.js         27 API routes (server side, talk to MySQL and MongoDB)
+  app/api/**/route.js         30 API routes (server side, talk to MySQL and MongoDB)
   app/**/page.js              pages
   components/                 shared React components
   lib/server/                 db.js (MySQL pool), mongo.js, auth.js (JWT), keywords.js
@@ -95,13 +96,13 @@ Every file in `frontend/` starts with an `// Owner:` comment, and every SQL obje
 |---|---|---|
 | Entity tables | `users`, `topics`, `articles`, `comments` | `sources`, `perspective_categories`, `perspective_terms` |
 | Relationship tables | `article_topics`, `bookmarks`, `topic_follows`, `source_follows` | `classified_as`, `term_matches`, `label_feedback` |
-| Functions / procedures | `sp_add_article` (transaction), `sp_change_user_role`, `sp_user_feed` | `fn_count_term`, `fn_article_label`, `fn_agreement_pct`, `sp_compute_scores`, `sp_refresh_labels`, `sp_score_article`, `sp_match_term`, `sp_topic_perspective_summary`, `sp_set_feedback` |
+| Functions / procedures | `sp_add_article` (transaction), `sp_change_user_role`, `sp_user_feed`, `sp_delete_comment` | `fn_count_term`, `fn_article_label`, `fn_agreement_pct`, `sp_compute_scores`, `sp_refresh_labels`, `sp_score_article`, `sp_match_term`, `sp_topic_perspective_summary`, `sp_set_feedback` |
 | Views | `v_article_details` | `v_article_labels`, `v_article_scores`, `v_source_perspective_summary`, `v_article_feedback` |
 | Triggers | 4 validation triggers (articles, users, comments) | 7 scoring triggers (articles, perspective_terms) |
 | Other SQL | FULLTEXT search, P1 queries, P1 part of ALTER/DROP | `06_db_roles.sql`, P2 queries, P2 part of ALTER/DROP |
 | MongoDB | `article_metadata`, `search_logs` | `reading_history`, `comparison_sessions` |
-| API | login, register, topics, sources, search, articles, related, comments, bookmarks, follows, feed, admin/articles | analyze, compare, perspectives, keywords, history, feedback, admin/terms, admin/stats |
-| Pages | home, login, register, search, article page, feed, saved, admin add-article | compare, history, admin terms, admin stats, perspective panel + feedback box |
+| API | login, register, topics, sources, search, articles, related, comments, bookmarks, follows, feed, admin/articles, admin/search-logs (MongoDB CRUD), admin/procedures (shared) | analyze, compare, perspectives, keywords, history, feedback, admin/terms, admin/stats |
+| Pages | home, login, register, search, article page, feed, saved, admin add-article, admin search logs, admin procedures (shared) | compare, history, admin terms, admin stats, perspective panel + feedback box |
 
 ## Rules we follow
 
