@@ -14,6 +14,7 @@ DROP PROCEDURE IF EXISTS sp_score_article;
 DROP PROCEDURE IF EXISTS sp_match_term;
 DROP PROCEDURE IF EXISTS sp_add_article;
 DROP PROCEDURE IF EXISTS sp_change_user_role;
+DROP PROCEDURE IF EXISTS sp_delete_comment;
 DROP PROCEDURE IF EXISTS sp_topic_perspective_summary;
 DROP PROCEDURE IF EXISTS sp_user_feed;
 DROP PROCEDURE IF EXISTS sp_set_feedback;
@@ -224,6 +225,30 @@ BEGIN
     END IF;
     UPDATE users SET role = p_role WHERE email = LOWER(TRIM(p_email));
     SELECT user_id, name, email, role FROM users WHERE email = LOWER(TRIM(p_email));
+END$$
+
+-- ---------------------------------------------------------------------
+-- P1  sp_delete_comment: delete a comment. Only its author or an admin
+-- may; anyone else gets an error. The reader role has no DELETE right on
+-- comments, so a reader can delete a comment only through this check.
+-- ---------------------------------------------------------------------
+CREATE PROCEDURE sp_delete_comment(IN p_comment_id INT, IN p_user_id INT)
+MODIFIES SQL DATA
+BEGIN
+    DECLARE v_author INT DEFAULT NULL;
+    DECLARE v_role   VARCHAR(10) DEFAULT NULL;
+
+    SELECT user_id INTO v_author FROM comments WHERE comment_id = p_comment_id;
+    IF v_author IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Comment not found';
+    END IF;
+
+    SELECT role INTO v_role FROM users WHERE user_id = p_user_id;
+    IF v_author <> p_user_id AND NOT (v_role <=> 'admin') THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'You can only delete your own comments';
+    END IF;
+
+    DELETE FROM comments WHERE comment_id = p_comment_id;
 END$$
 
 -- ---------------------------------------------------------------------
