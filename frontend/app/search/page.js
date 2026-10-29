@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import ArticleCard from "@/components/ArticleCard";
 import SearchBar from "@/components/SearchBar";
+import SearchHistory from "@/components/SearchHistory";
 import { search } from "@/lib/api";
 
 // Next.js passes the URL's ?query=... in as searchParams
@@ -44,6 +45,7 @@ export default function SearchResultsPage({ searchParams }) {
   return (
     <main>
       <SearchBar initialQuery={query} />
+      <SearchHistory refreshKey={results} />
       {error && <p className="error">{error}</p>}
 
       {results && (

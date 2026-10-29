@@ -14,6 +14,7 @@ export const GET = route(async (request, { params }) => {
     `SELECT a.article_id, a.title, a.url, a.published_at, a.summary, a.content,
             s.source_id, s.source_name, s.website,
             fn_article_label(a.article_id) AS label,
+            fn_reading_time(a.article_id) AS reading_minutes,
             EXISTS(SELECT 1 FROM bookmarks b WHERE b.user_id = ? AND b.article_id = a.article_id) AS bookmarked,
             EXISTS(SELECT 1 FROM source_follows f WHERE f.user_id = ? AND f.source_id = a.source_id) AS following_source
      FROM articles AS a

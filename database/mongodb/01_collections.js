@@ -27,6 +27,7 @@ const collections = {
       query: { bsonType: "string" },
       result_count: INT,
       timestamp: { bsonType: "date" },
+      pinned: { bsonType: "bool" }, // optional: the reader pinned this search
     },
   },
   // P2: one document per article view

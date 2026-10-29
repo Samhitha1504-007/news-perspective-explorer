@@ -3,16 +3,18 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import SearchBar from "@/components/SearchBar";
-import { getSession, getTopics } from "@/lib/api";
+import { getMostDiscussed, getSession, getTopics } from "@/lib/api";
 
 export default function HomePage() {
   const [topics, setTopics] = useState([]);
   const [error, setError] = useState("");
   const [loggedIn, setLoggedIn] = useState(true);
+  const [discussed, setDiscussed] = useState([]);
 
   useEffect(() => {
     setLoggedIn(getSession() !== null);
     getTopics().then(setTopics).catch((err) => setError(err.message));
+    getMostDiscussed().then((d) => setDiscussed(d.articles)).catch(() => setDiscussed([]));
   }, []);
 
   return (
@@ -30,6 +32,20 @@ export default function HomePage() {
         </p>
       )}
       <SearchBar />
+
+      {discussed.length > 0 && (
+        <>
+          <h2 className="section-title">Most discussed</h2>
+          <ol>
+            {discussed.map((a) => (
+              <li key={a.article_id}>
+                <Link href={`/articles/${a.article_id}`}>{a.title}</Link>{" "}
+                <span className="muted">· {a.source_name} · {a.comments} comment(s) · {a.bookmarks} save(s)</span>
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
 
       <h2 className="section-title">Browse by topic</h2>
       {error && <p className="error">{error}</p>}

@@ -15,6 +15,9 @@ DROP PROCEDURE IF EXISTS sp_match_term;
 DROP PROCEDURE IF EXISTS sp_add_article;
 DROP PROCEDURE IF EXISTS sp_change_user_role;
 DROP PROCEDURE IF EXISTS sp_delete_comment;
+DROP FUNCTION  IF EXISTS fn_reading_time;
+DROP PROCEDURE IF EXISTS sp_toggle_bookmark;
+DROP PROCEDURE IF EXISTS sp_most_discussed;
 DROP PROCEDURE IF EXISTS sp_topic_perspective_summary;
 DROP PROCEDURE IF EXISTS sp_user_feed;
 DROP PROCEDURE IF EXISTS sp_set_feedback;
@@ -249,6 +252,56 @@ BEGIN
     END IF;
 
     DELETE FROM comments WHERE comment_id = p_comment_id;
+END$$
+
+-- ---------------------------------------------------------------------
+-- P1  fn_reading_time: minutes to read an article, at 200 words a minute
+-- (at least 1). Words = spaces + 1. Shown on the article page.
+-- ---------------------------------------------------------------------
+CREATE FUNCTION fn_reading_time(p_article_id INT)
+RETURNS INT
+READS SQL DATA
+BEGIN
+    DECLARE v_words INT DEFAULT 0;
+    SELECT CHAR_LENGTH(TRIM(content)) - CHAR_LENGTH(REPLACE(TRIM(content), ' ', '')) + 1
+    INTO v_words
+    FROM articles WHERE article_id = p_article_id;
+    RETURN GREATEST(1, CEIL(v_words / 200));
+END$$
+
+-- ---------------------------------------------------------------------
+-- P1  sp_toggle_bookmark: the Save button. If the article is already
+-- saved, unsave it; otherwise save it. p_saved (OUT) tells the page the
+-- new state: 1 = saved, 0 = not saved.
+-- ---------------------------------------------------------------------
+CREATE PROCEDURE sp_toggle_bookmark(IN p_user_id INT, IN p_article_id INT, OUT p_saved TINYINT)
+MODIFIES SQL DATA
+BEGIN
+    IF EXISTS (SELECT 1 FROM bookmarks WHERE user_id = p_user_id AND article_id = p_article_id) THEN
+        DELETE FROM bookmarks WHERE user_id = p_user_id AND article_id = p_article_id;
+        SET p_saved = 0;
+    ELSE
+        INSERT INTO bookmarks (user_id, article_id) VALUES (p_user_id, p_article_id);
+        SET p_saved = 1;
+    END IF;
+END$$
+
+-- ---------------------------------------------------------------------
+-- P1  sp_most_discussed: the "Most discussed" list on the home page.
+-- Ranks articles by comments + bookmarks (activity) and returns the top
+-- p_limit. Articles with no activity are left out.
+-- ---------------------------------------------------------------------
+CREATE PROCEDURE sp_most_discussed(IN p_limit INT)
+READS SQL DATA
+BEGIN
+    SELECT a.article_id, a.title, s.source_name,
+           (SELECT COUNT(*) FROM comments  c WHERE c.article_id = a.article_id) AS comments,
+           (SELECT COUNT(*) FROM bookmarks b WHERE b.article_id = a.article_id) AS bookmarks
+    FROM articles AS a
+    JOIN sources  AS s ON s.source_id = a.source_id
+    HAVING comments + bookmarks > 0
+    ORDER BY comments + bookmarks DESC, a.published_at DESC
+    LIMIT p_limit;
 END$$
 
 -- ---------------------------------------------------------------------
