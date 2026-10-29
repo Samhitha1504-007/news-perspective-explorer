@@ -31,6 +31,8 @@ export default function NavBar() {
               <Link href="/admin/articles">Add article</Link>
               <Link href="/admin/terms">Terms</Link>
               <Link href="/admin/stats">Stats</Link>
+              <Link href="/admin/searches">Search logs</Link>
+              <Link href="/admin/procedures">Procedures</Link>
             </>
           )}
           <Link href="/">{session.name}</Link>
