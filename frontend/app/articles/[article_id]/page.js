@@ -8,8 +8,8 @@ import FeedbackBox from "@/components/FeedbackBox";
 import HighlightedText from "@/components/HighlightedText";
 import PerspectivePanel from "@/components/PerspectivePanel";
 import {
-  addBookmark, addHistory, analyze, deleteArticle, followSource, followTopic, getArticle,
-  getKeywords, getRelated, getSession, removeBookmark, unfollowSource, unfollowTopic,
+  addHistory, analyze, deleteArticle, followSource, followTopic, getArticle,
+  getKeywords, getRelated, getSession, toggleBookmark, unfollowSource, unfollowTopic,
 } from "@/lib/api";
 
 export default function ArticlePage({ params }) {
@@ -33,11 +33,10 @@ export default function ArticlePage({ params }) {
   if (error) return <main><p className="error">{error}</p></main>;
   if (!article) return <main><p>Loading...</p></main>;
 
-  async function toggleBookmark() {
+  async function toggleSave() {
     try {
-      if (article.bookmarked) await removeBookmark(articleId);
-      else await addBookmark(articleId);
-      setArticle({ ...article, bookmarked: !article.bookmarked });
+      const { bookmarked } = await toggleBookmark(articleId); // sp_toggle_bookmark
+      setArticle({ ...article, bookmarked });
     } catch (err) { setError(err.message); }
   }
 
@@ -75,14 +74,14 @@ export default function ArticlePage({ params }) {
       <p className="kicker">{article.source.source_name}</p>
       <h1>{article.title}</h1>
       <p className="muted">
-        {formatDate(article.published_at)}
+        {formatDate(article.published_at)} · {article.reading_minutes} min read
         {hasRealUrl && (
           <> · <a href={article.url} target="_blank" rel="noreferrer">Read the original on {article.source.source_name} ↗</a></>
         )}
       </p>
 
       <div className="actions">
-        <button className={`toggle ${article.bookmarked ? "on" : ""}`} onClick={toggleBookmark}>
+        <button className={`toggle ${article.bookmarked ? "on" : ""}`} onClick={toggleSave}>
           {article.bookmarked ? "★ Saved" : "☆ Save"}
         </button>
         <button className={`toggle ${article.following_source ? "on" : ""}`} onClick={toggleSource}>

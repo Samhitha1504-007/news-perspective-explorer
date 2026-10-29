@@ -54,20 +54,25 @@ export const getRelated = (id) => request(`/articles/${id}/related`);
 export const createArticle = (body) => post("/admin/articles", body);
 export const deleteArticle = (id) => del(`/admin/articles/${id}`);
 export const getStats = () => request("/admin/stats");
+export const getMostDiscussed = () => request("/most-discussed");
+export const getUsers = () => request("/admin/users");
+export const changeUserRole = (email, role) => put("/admin/users", { email, role });
 
-// ---------------- P1: admin, MongoDB CRUD on search_logs ----------------
+// ---------------- P1: MongoDB search history ----------------
+// A reader's own searches (every search creates one automatically)
+export const getSearchHistory = () => request("/search-history");
+export const pinSearch = (id, pinned) => put(`/search-history/${id}`, { pinned });
+export const deleteSearch = (id) => del(`/search-history/${id}`);
+export const clearSearchHistory = () => del("/search-history");
+
+// Admin: everyone's search logs (MongoDB)
 export const getSearchLogs = () => request("/admin/search-logs");
-export const addSearchLog = (body) => post("/admin/search-logs", body);
-export const updateSearchLog = (id, query) => put(`/admin/search-logs/${id}`, { query });
 export const deleteSearchLog = (id) => del(`/admin/search-logs/${id}`);
 export const clearSearchLogs = () => del("/admin/search-logs");
 
-// ---------------- admin: run stored procedures / functions ----------------
-export const runProcedure = (name, args) => post("/admin/procedures", { name, args });
-
 // ---------------- P1: reader features ----------------
 export const getBookmarks = () => request("/bookmarks");
-export const addBookmark = (articleId) => post("/bookmarks", { article_id: articleId });
+export const toggleBookmark = (articleId) => post("/bookmarks", { article_id: articleId });
 export const removeBookmark = (articleId) => del(`/bookmarks/${articleId}`);
 
 export const getFollows = () => request("/follows");

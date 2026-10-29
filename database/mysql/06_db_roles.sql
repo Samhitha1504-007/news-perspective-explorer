@@ -38,6 +38,9 @@ GRANT EXECUTE ON PROCEDURE news_perspective_db.sp_topic_perspective_summary TO '
 GRANT EXECUTE ON PROCEDURE news_perspective_db.sp_score_article             TO 'reader_role';
 -- Deleting a comment only through sp_delete_comment (author or admin only).
 GRANT EXECUTE ON PROCEDURE news_perspective_db.sp_delete_comment            TO 'reader_role';
+GRANT EXECUTE ON PROCEDURE news_perspective_db.sp_toggle_bookmark           TO 'reader_role';
+GRANT EXECUTE ON PROCEDURE news_perspective_db.sp_most_discussed            TO 'reader_role';
+GRANT EXECUTE ON FUNCTION  news_perspective_db.fn_reading_time              TO 'reader_role';
 GRANT EXECUTE ON FUNCTION  news_perspective_db.fn_article_label             TO 'reader_role';
 GRANT EXECUTE ON FUNCTION  news_perspective_db.fn_agreement_pct             TO 'reader_role';
 -- A reader can NOT: add/delete articles, edit perspective_terms, change
