@@ -26,8 +26,8 @@ All 15 seed articles are real published articles (real title, date and link). Th
 ```
 database/mysql/
   01_schema.sql               14 tables: 7 entity tables + 7 relationship tables
-  02_functions_procedures.sql 3 functions, 8 procedures (scoring engine, transaction, feed)
-  03_views.sql                5 views (derived label, score pivot, comparison, feedback)
+  02_functions_procedures.sql 4 functions, 12 procedures (scoring, labels, transaction, feed, bookmarks, comments)
+  03_views.sql                5 views (stored label, score pivot, comparison, feedback)
   04_triggers.sql             11 triggers (validation + automatic re-scoring)
   05_seed_data.sql            categories, terms, sources, topics, users, 15 real articles
   06_db_roles.sql             MySQL roles admin_role / reader_role + their accounts
